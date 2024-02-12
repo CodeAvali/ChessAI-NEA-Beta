@@ -3,23 +3,13 @@
 
 import numpy as np, Moves_Inital, copy, GUI, threading, time, sys
 from timeit import default_timer as timer
-#import pyprctl
 import GUI
-#import random
-#import lazyai as lazy
-#import chess
-global board, White_Playing, White_moves, Black_moves, Moves_Tuple, Blocked_Tuple, Time_Stamp, MAX, MIN, move_from, move_to, utility, threading
+import random
+global board, White_Playing, White_moves, Black_moves, Moves_Tuple, Blocked_Tuple, Time_Stamp, MAX, MIN, move_from, move_to, utility
 White_moves, Black_moves = [], []
 space = ' '
-message = 'By checkmate'
-MAX = 100000000000
-MIN = -10000000000
-
-QUEEN_VALUE = 9
-ROOK_VALUE = 5
-BISHOP_VALUE = 3
-KNIGHT_VALUE = 3
-PAWN_VALUE = 1
+MAX, MIN = 100000000000, -10000000000
+QUEEN_VALUE, ROOK_VALUE, BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE = 9, 5, 3, 3, 1
 
 # (2) --------- Essential Functions ------------
 
@@ -83,16 +73,13 @@ def perform(move_to, move_from, board):
   #----
 
 def identify_castle(move_to, move_from):
-  print(move_to, move_from, "KING DOES CASTLING")
   #White cases
   if move_from == (4, 7) and board[move_from[1]][move_from[0]] == W_King:
     #Queenside
     if move_to == (6, 7):
-      print("WHITE QUEENSIDE")
       perform_castle((7, 7), (5, 7), True)
     #Kingside
     if move_to == (2, 7):
-      print("WHITE KINGSIDE")
       perform_castle((0, 7), (3, 7), True)
 
   #Black cases
@@ -100,25 +87,19 @@ def identify_castle(move_to, move_from):
     
     #Queenside
     if move_to == (2, 0):
-      print("BLACK QUEENSIDE")
       perform_castle((0, 0), (3, 0), False)
+    #Kingside
     if move_to == (6, 0):
-      print("BLACK QUEENSIDE")
       perform_castle((7, 0), (5, 0), False)
 
 
 def perform_castle(move_from, move_to, for_white):
-
   #Therefore - given the conditions - perform a simple move
   board[move_from[1]][move_from[0]] = Empty_
   board[move_to[1]][move_to[0]] = W_Rook if for_white else B_Rook
   castling_permisions[0 if for_white else 1] = False
 
-
-
-
-
-
+#----
 
 def get(move_to, move_from):
   global board, White_moves, Black_moves, Playing, message, has_captured, restlessness
@@ -137,19 +118,8 @@ def get(move_to, move_from):
   
   #Check otherwise for a capture for restlessness
   if captured != Empty_:
-    print("CAPTURE MOVE")
     restlessness = 0
     has_captured = True
-
-  
-
-
-
-#-----
-
-
-  #then need to generate new moves from location;
-
 
   #----
 
@@ -160,10 +130,8 @@ def promotion(move_to, move_from, current_board):
   peice = board[move_from[1]][move_from[0]]
 
   if move_to[1] == 0:  #Then, white pawn promotion
-    print("WHITE PROMOTION --------------------")
     current_board[1][move_from[0]] = W_Quee
   elif move_to[1] == 7: #Black, pawn promotion 
-    print("BLACK PROMOTION --------------------")
     current_board[6][move_from[0]] = B_Quee   
 
   return current_board
@@ -238,7 +206,6 @@ def pawn(create, White_Playing):
 def straight(create, gen):
   global Blocked_Tuple, Attack_Tuple, Protected_Tuple
 
-  #start = timer()
   Blocked_Tuple = []
   Attack_Tuple = []
   Protected_Tuple = []
@@ -267,9 +234,6 @@ def straight(create, gen):
     y_pointer -= 1 
     new = load(create_x, y_pointer, create, new)
 
-  #end = timer()
-  #print(end-start, "old straight")
-
   if gen:
     #Can cleanout bishop/knight peices for optimisation - CHECK TO SEE IF APPROVED 
     new = []
@@ -277,46 +241,11 @@ def straight(create, gen):
       if board[Blocked_Tuple[i][1][1]][Blocked_Tuple[i][1][0]] not in straight_optimised:
         temp = (move_from, tuple(Blocked_Tuple[i][1]))                                          #move_from
         new.append(temp)
-      #else: 
-        #print("straight movement redundancy check successful", board[Blocked_Tuple[i][1][1]][Blocked_Tuple[i][1][0]])
     return new
   else:
     new += Attack_Tuple
     return new
   
-  #----
-
-def straight_dangerous(create, gen):                                                           #Check to see if actually possibly slower later; 
-    global straight_new
-
-    start = timer()
-    straight_new, Blocked_Tuple = [], []
-    create_x, create_y = create[0], create[1]
-    #print("STRAIGHT")
-
-    def generate_moves(x_direction, y_direction):
-        global straight_new
-        x_pointer, y_pointer = create_x + x_direction, create_y + y_direction
-        while 0 <= x_pointer < 8 and 0 <= y_pointer < 8 and not blocked(create, x_pointer, y_pointer):
-            straight_new = load(x_pointer, y_pointer, create, straight_new)
-            x_pointer += x_direction
-            y_pointer += y_direction
-
-    generate_moves(1, 0) # Horizontal right
-    generate_moves(-1, 0) # Horizontal left
-    generate_moves(0, 1)  # Vertical down
-    generate_moves(0, -1)  # Vertical up
-
-    #print("FINISHED", straight_new)
-    end = timer()
-    #print(end-start, "straight new")
-
-    if gen:
-        straight_new = [(create, tuple(Blocked_Tuple[i][1])) for i in range(len(Blocked_Tuple))]  # if board[Blocked_Tuple[i][0][1]][Blocked_Tuple[i][1][0]] not in straight_optimised]
-        return straight_new
-    else:
-        return straight_new
-
   #----
 
 def diagonal(create, gen):#
@@ -353,9 +282,6 @@ def diagonal(create, gen):#
     y_pointer -= 1
     new = load(x_pointer, y_pointer, create, new)
 
-  #end = timer()
-  #print(end-start, "time old diagional")
-
   if gen:
     #Can cleanout bishop/knight peices for optimisation - CHECK TO SEE IF APPROVED 
     new = []
@@ -363,45 +289,12 @@ def diagonal(create, gen):#
       if board[Blocked_Tuple[i][1][1]][Blocked_Tuple[i][1][0]] not in diagonal_optimised:
         temp = (move_from, tuple(Blocked_Tuple[i][1]))                                          #move_from
         new.append(temp)
-      #else: 
-        #print("Diagonal movement redundancy check successful", board[Blocked_Tuple[i][1][1]][Blocked_Tuple[i][1][0]])
     return new
   else:
     new += Attack_Tuple
     return new 
   
   #---
-
-def diagonal_dangerous(create, gen):
-    global diagional_new
-    start = timer()
-    diagional_new, Blocked_Tuple, Attack_Tuple = [], [], []
-    create_x, create_y = create[0], create[1]
-
-    def generate_moves(x_direction, y_direction):
-      global diagional_new
-      x_pointer, y_pointer = create_x + x_direction, create_y + y_direction
-      while 0 <= x_pointer < 8 and 0 <= y_pointer < 8 and not blocked(create, x_pointer, y_pointer):
-        diagional_new = load(x_pointer, y_pointer, create, diagional_new)
-        x_pointer += x_direction
-        y_pointer += y_direction
-    
-    generate_moves(1, 1)  # Diagonal down-right
-    generate_moves(-1, 1)  # Diagonal down-left
-    generate_moves(1, -1)  # Diagonal up-right
-    generate_moves(-1, -1)  # Diagonal up-left
-
-    end = timer()
-    print(end-start, "new diagional movement")
-
-    if gen:
-        diagionaL_new = [(create, tuple(Blocked_Tuple[i][1])) for i in range(len(Blocked_Tuple))]
-        return diagional_new
-    else:
-        diagional_new += Attack_Tuple 
-        return diagional_new
-
-  #----
 
 def knight(create, gen):
     
@@ -435,45 +328,28 @@ def own(move_from, move_to):
     return True
   elif (create_move in BLACK) and (create_location in BLACK):
     return True
-  else:  #otherwise;
+  else:  
     return False 
     
 #----
 
 def adjecent(create):
+    #....
     global W_moves, B_moves
-    B_DANGEROUS = [B_Pawn, B_King, B_Bish, B_Quee]
-    W_DANGEROUS = [W_Pawn, W_King, W_Bish, W_Quee]
-    #ISSUE: Creates extra tuple ellemnt 
+
     create_x, create_y, new = create[0], create[1], []
     deltas = [(1, 1), (0, 1), (-1, 1), (1, 0), (-1, 0), (1, -1), (0, -1), (-1, -1)]
 
     new = [list_load(create_x + dx, create_y + dy, create, new) for dx, dy in deltas if 0 <= create_x + dx < 8 and 0 <= create_y + dy < 8 and not own(create, (create_x + dx, create_y + dy))]
 
-    #We need to check for attacks; from respective peices. 
-    for_white = True if board[create_y][create_x] == W_King else False 
-
-    if castling_permisions[0 if for_white else 1]:
-      rights = castling(for_white, board)
-      new += rights
+    #Check to see if castling is possible is the player still has castling permisions 
+    if castling_permisions[0 if White_Playing else 1]:
+      for_white = True if board[create_y][create_x] == W_King else False 
+      new += castling(for_white, board)
 
     return new
 
   #----
-
-
-
-
-        
-
-
-
-    
-    #Do a range check
-    
-
-
-
 
 def lazy_pin(board, White_Moves, Black_Moves, for_White):
   global move_from, move_to
@@ -500,10 +376,7 @@ def lazy_pin(board, White_Moves, Black_Moves, for_White):
       #Therefore; if the move is still valid; append it to checked
       if valid:
         checked.append(White_Moves[i])
-      #else: 
-        #print("PINNED", White_Moves[i])
 
-  
   if not for_White:
     White_Playing = False
     #Perform each possible move;
@@ -529,24 +402,6 @@ def lazy_pin(board, White_Moves, Black_Moves, for_White):
 
 #------
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
-
-
-
 def list_load(x_value, y_value, create, data_holder):
   global White_moves, Black_moves, White_Playing, flag_map
   #INDEPENDENT: Shorthand for creating an action when needed
@@ -556,37 +411,13 @@ def list_load(x_value, y_value, create, data_holder):
 
   return temp
    
-  
-
-
-
-
-  
-
+#------
 
 def direct(create):
   new = []
   temp = (move_to, move_to)
   new.append(temp)
   return new
-
-  #----
-
-def attacked(create):
-  global flag_map, White_Playing 
-
-  
-  peice = board[create[1]][create[0]]
-
-  pointer = 0
-  if White_Playing:
-    pointer = 1
-
-  if flag_map[create[1]][create[0]][pointer] >= 1:
-    print(create, "is attacked", flag_map[create[1]][create[0]][pointer], pointer)
-    return True
-  else: 
-    return False
 
 # (4) --------- Legal moves; expansions and validation
 
@@ -600,18 +431,6 @@ def legal(move_to, move_from, move_space):
 
   #otherwise;
   return False
-
-  #----
-
-def belonging(move_from, Moves_Tuple):
-  #INDEPENDENT HELPER: Output legal moves 
-  
-  kept = []
-  for i in range(len(Moves_Tuple)-1):
-    if move_from == Moves_Tuple[i][0]:
-      kept.append(Moves_Tuple[i])
-
-  print("Possible moves", kept)
 
   #----
 
@@ -630,7 +449,6 @@ def blocked(create, move_from_x, move_from_y):
   if (move_from_x < 0 or move_from_x > 7) or (move_from_y < 0 or move_from_y > 7):
     return True #Range check 
 
-  #starting = board[create[1]][create[0]]
   destination = board[move_from_y][move_from_x]
 
   if (destination in EMPTY):
@@ -649,8 +467,6 @@ def generate(move_from, move_to):
   #Create a list of affected peices 
   global White_moves, Black_moves, Blocked_Tuple
   #From the location; get all peices that have been affected
-
-  #print(move_from, move_to)  #testing
 
   locations = []
   Blocked_Tuple = []
@@ -674,12 +490,8 @@ def generate(move_from, move_to):
   #print(King_location)
   if White_Playing:
     locations = load(King_location[1][0], King_location[1][1], King_location[0], locations)
-    #print("WhitePlaying")
   else:
     locations += load(King_location[0][0], King_location[0][1], King_location[1], locations)
-    #print("BlackPlaying")
-
-  #print(locations)
 
   return locations 
 
@@ -688,9 +500,6 @@ def generate(move_from, move_to):
 def explode(mapping, White_Moves, Black_Moves):
   global White_Playing
   #Hence, after generating a map of affected peices
-  #print(mapping)'
-
-  #print("complexity explosion", len(mapping))
   for i in range(len(mapping)):
     peice = board[mapping[i][1][1]][mapping[i][1][0]]
     if peice in WHITE:
@@ -705,26 +514,18 @@ def explode(mapping, White_Moves, Black_Moves):
   #Then, return new legal moves. 
   return White_Moves, Black_Moves
 
-  #White_moves = unique(White_moves)      #testing for duplicates
-  #Black_moves = unique(Black_moves)
-  
-  #====
-
 #----
 
 def unique(duplicates):
 
   # intilize a null list
   unique_list = []
-  print("TESTING", len(duplicates))
 
   # traverse for all elements
   for i in duplicates:
       # check if exists in unique_list or not
       if i not in unique_list:
           unique_list.append(i)
-
-  print("TESTING", len(unique_list))
 
   return unique_list
 
@@ -747,11 +548,10 @@ def passant_check(move_from, move_to, en_location):
       if board[final_y][move_from[0] + 1] in PAWN:
         en_flag = True     
 
-  print(en_flag, "EN FLAG CHECK, #######################################################???????????????????????????????????")
+  #print(en_flag, "EN FLAG CHECK, #######################################################???????????????????????????????????")
 
   #If move is elegible for en_passant response, create respective token for player
   if en_flag:
-    print("En Passant identified!")
     offset = int((move_from[1] - move_to[1]) / 2) + move_to[1]
     if White_Playing:
       board[offset][move_from[0]] = W_En_Passant_Token     
@@ -775,8 +575,7 @@ def insufficent_material(board):
   #2. A king and bishop
   #3. A king and up to two knights      #Hence just need to just check the number of bishops 
   
-  bishops = [0,0]
-  immediate = [W_Pawn, W_Rook, W_Quee, B_Pawn, B_Rook, B_Quee]
+  bishops, immediate = [0,0], [W_Pawn, W_Rook, W_Quee, B_Pawn, B_Rook, B_Quee]
 
   for y in range(0, 8):
     for x in range(0, 8):
@@ -800,19 +599,17 @@ def insufficent_material(board):
 #----
   
 def castling(for_white, board):
-  #Function to allow for castling 
+  #Generates legal castling moves
 
   rights = []
 
   if for_white:
-    #King position at start (7, 4)
-
-    #If conditions 
+    #Queenside
     if (board[7][4] == W_King) and (board[7][0]) == W_Rook:
       #Check that the other positions are empty
-      #(1) Queenside
-      if (board[7][3] == Empty_) and (board[7][2] == Empty_) and (board[7][1] == Empty_):                        #ADDITIONAL CONDITION - MOVE HAS TO NOT BE STUPID - I.E., ILLEGAL. 
+      if (board[7][3] == Empty_) and (board[7][2] == Empty_) and (board[7][1] == Empty_):                        
         rights = load(2, 7, (4, 7), rights)
+    #Kingside
     if (board[7][4] == W_King) and (board[7][7] == W_Rook):
       if (board[7][5] == Empty_) and (board[7][6] == Empty_):
         rights = load(6, 7, (4, 7), rights)
@@ -829,7 +626,6 @@ def castling(for_white, board):
       if (board[0][5] == Empty_) and (board[0][6] == Empty_):
         rights = load(6, 0, (4, 0), rights)
   
-  #print(" ############################################  CASTLING FUNCTION CHECK", rights) 
   return rights
 
 # (1) ---------- Loaded values
@@ -870,18 +666,8 @@ def reset():
 
   White_moves, Black_moves = White_Moves, Black_Moves
 
-
   store_it(White_Moves, Black_Moves)
   GUI.default()
-
-  print()
-  print()
-  print("-------------------------------------------------------------")
-  print("                   RESET                                     ")
-  print()
-  print()
-
-
 
 #---
   
@@ -962,17 +748,17 @@ def ai_call():
 
   #Create conditions for peice_value transitions
   global MG_SCALE, EG_SCALE
-  EG_SCALE = min(END_GAME_TRANSITION * Time_Stamp, 0.01)
-  MG_SCALE = max(0, 0.01 - EG_SCALE)
-  print("################### SCALES", MG_SCALE, EG_SCALE)
+  EG_SCALE = min((END_GAME_TRANSITION / 100)* (Time_Stamp // 2), 1)
+  MG_SCALE = max(0, 1 - EG_SCALE)
+  #print("################### SCALES", MG_SCALE, EG_SCALE)
 
   global MAX, MIN, HAZE
   MAX, MIN, HAZE = 1000, -1000, (restlessness / RESTLESSNESS_FACTOR)**2
   cap = DEPTH
-  print("Running at ------------------------------>", cap, HAZE, restlessness, RESTLESSNESS_FACTOR, "PAWN VALUE CHECK", PAWN_VALUE)
+  #print("Running at ------------------------------>", cap, HAZE, restlessness, RESTLESSNESS_FACTOR, "PAWN VALUE CHECK", PAWN_VALUE, "DEPTH", cap)
 
   result = ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp)
-  print("RETURNED", result)
+  #print("RETURNED", result)
 
   move_from, move_to = (result[0][0], result[0][1]), (result[1][0], result[1][1])
 
@@ -1010,55 +796,27 @@ def ai_load(for_white):
 
   file.close()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #----
 
 def ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp):
 
     #Get personality
-    #PERSONALITY = ['Mini_Max_Optimised','Mini_Max_Optimised']
-
     current = PERSONALITY
-    print("RUNNING", current)
 
     #NEED to update player tag 
     if current != player[0 if White_Playing else 1]:
       player[0 if White_Playing else 1] = str(current)
       GUI.update_personality_tag(White_Playing, player[0 if White_Playing else 1])
-      #result = selected
 
     #Hence, call the respective ai function
-
-    #if current == 'Random_Pick':
-        #result = Random_AI()
     if current == 'Human':
       return selected
     if current == 'Ideal_Pick':
         result = ideal_pick(board, Moves_Tuple)
     elif current == 'Mini_Max_Optimised':
-        result = optimised_min_max(temp, W_moves, B_moves, White_Playing, MIN, MAX, cap, [0,0])
+        result = optimised_min_max(temp, W_moves, B_moves, White_Playing, MIN, MAX, cap)
     elif current == 'Random_Pick':
         result = random_pick(Moves_Tuple)
-    #elif current == 'Mini_Max_Optimised':
-       # result = Mini_Max_Optimised()
-    #NOT
     elif current == 'Average_Friend':
         result = average_friend(board, W_moves, B_moves, White_Playing, MIN, MAX, cap)
     #Additional ai personalities can simply be appended here:
@@ -1073,12 +831,12 @@ def ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp):
 
 #-------
 
-import random
 def random_pick(moves_tuple):
   return moves_tuple[random.randint(0, len(moves_tuple)-1)]
 
+#-------
+
 def ideal_pick(board, moves_tuple):
-  print("IDEAL", moves_tuple)
   moves = moves_tuple 
   scores = []
 
@@ -1122,48 +880,33 @@ def mini_max(board, W_Moves, B_Moves, depth):
   for i in range(len(moves)):
     if board[moves[i][0][1]][moves[i][0][0]] != Empty_:
       temp = copy.deepcopy(board)
-      #W_Moves = copy.deepcopy(W_Moves)
-      #B_Moves = copy.deepcopy(B_Moves)
       #perform the move
       W_Moves, B_Moves, temp = ai_perform(W_Moves, B_Moves, moves[i][0], moves[i][1], temp)
       value = bad_evaluate(temp, W_Moves, B_Moves)
 
       if depth > 1:
-        #print("DEPTH:", depth)
         temp_best_move = mini_max(temp, W_Moves, B_Moves, depth - 1)
-        #print("temp best move", temp_best_move)
         W_Moves, B_Moves, temp = ai_perform(W_Moves, B_Moves, moves[i][0], moves[i][1], temp)
         value = bad_evaluate(temp, W_Moves, B_Moves)
         #check for no possible moves
-
       scores.append(value)
       #print("SCORES", scores)
 
-  #print(len(White_Moves), len(Black_Moves), "LENGTHS")
-
-  #print(scores)
   if White_Playing:
     best_move = moves[scores.index(max(scores))]
     White_Playing = False
   else:
-    #print(scores.index(min(scores)), "moves:", moves)
     best_move = moves[scores.index(min(scores))]
     White_Playing = True
 
   return best_move
-
-
-
-
-  #reformat to include alpha beta prunning - geeks for geeks alpha beta pruning to improve efficency - prevent repeated. 
       
 #-------------
 
-#PLEASE BE GOOD -https://ntietz.com/blog/alpha-beta-pruning/
-#global alpha, beta
+#FROM - https://ntietz.com/blog/alpha-beta-pruning/
 
-def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth, threat):
-  global cap, Threat_Tolerance
+def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
+  global cap
 
   if insufficent_material(board) and depth != cap:
     return 0  #As insufficent for any capture - if losing; should play towards capture
@@ -1175,7 +918,7 @@ def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth, 
     normal = peice_square_optimised(board, W_Move, B_Move)
     return normal 
 
-  moves, value, scores, threat= [], [], [], copy.deepcopy(threat)
+  moves, value, scores= [], [], []
 
   if White_Playing:
     best = MIN
@@ -1189,7 +932,7 @@ def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth, 
       temp = copy.deepcopy(board)
       #Hence; perform the move                                                                                            #TO DO; Implement instant return for kings; Check to see if ab can be shared. 
       W_Moves, B_Moves, temp = ai_perform(W_Move, B_Move, moves[i][0], moves[i][1], temp)
-      value = optimised_min_max(temp, W_Moves, B_Moves, False, alpha, beta, depth - 1, threat)  #Pass min-max to other player.
+      value = optimised_min_max(temp, W_Moves, B_Moves, False, alpha, beta, depth - 1)  #Pass min-max to other player.
       #Now; do alpha beta prunning
       best = max(best, value)
       alpha = max(alpha, best)
@@ -1208,19 +951,17 @@ def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth, 
     if fuzz and depth != cap:
       W_Move = lazy_pin(board, W_Move, B_Move, True)
       if len(W_Move) == 0 and king_attacked(B_Move, board):
-        print("BLACK IDENTIFIED CHECKMATE")
         return (-100 + (-25 * depth))
     #Then iterate through all children
     for i in range(len(moves)):
       temp = copy.deepcopy(board)
       #Hence; perform the move
       W_Moves, B_Moves, temp = ai_perform(W_Move, B_Move, moves[i][0], moves[i][1], temp)
-      value = optimised_min_max(temp, W_Moves, B_Moves, True, alpha, beta, depth - 1, threat) #Pass min-max to other player. 
+      value = optimised_min_max(temp, W_Moves, B_Moves, True, alpha, beta, depth - 1) #Pass min-max to other player. 
       #Now; do alpha beta prunning.
       best = min(best, value)
       beta = min(beta, best)
-      if beta <= alpha:      #<=
-        #print(i, "break")
+      if beta <= alpha:      
         break                  #Prune the tree as limits reached - if playing optimally; nodes arent considered. 
       elif depth == cap:
         scores.append(value + random.uniform(-HAZE, HAZE))
@@ -1229,12 +970,10 @@ def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth, 
     if depth != cap:
       return best #Return the played (minimised) score for the state.
      
-  if depth == cap:        #ORIGINAL CONDITION.
-    #print(scores)
-    print("For white player", max(scores), "For black player", min(scores))
-    #print("cap confirmed - global", cap)
+  if depth == cap:        
     if not scores:
-      raise "Scores is empty"
+      raise "NoScoresError"
+    #print("For white player", max(scores), "For black player", min(scores))                             #TO DO - report for console 
     return moves[scores.index(max(scores))] if White_Playing else moves[scores.index(min(scores))]
         
 #-----
@@ -1252,7 +991,6 @@ def dive_min_max(board, W_Capture, B_Capture, White_Playing, alpha, beta, depth)
 
   if White_Playing:
     best = MIN
-    #W_Capture = attacking(W_Capture)
     #Then otherwise; we should 'skip stones' - restricting to the capturing moves. 
     for i in range(len(W_Capture)):
       temp = copy.deepcopy(board)
@@ -1272,7 +1010,6 @@ def dive_min_max(board, W_Capture, B_Capture, White_Playing, alpha, beta, depth)
   if not White_Playing:
     best = MAX
     #Verifiy that all moves are captures
-  # B_Capture = attacking(B_Capture)
     #Then otherwise, we should 'skip stones' - restricting to the capturing moves. 
     for i in range(len(B_Capture)):
       temp = copy.deepcopy(board)
@@ -1338,7 +1075,6 @@ def average_friend(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
     if fuzz and depth != cap:
       W_Move = lazy_pin(board, W_Move, B_Move, True)
       if len(W_Move) == 0 and king_attacked(B_Move, board):
-        print("BLACK IDENTIFIED CHECKMATE")
         return (-100 + (-25 * depth))
     #Then iterate through all children
     for i in range(len(moves)):
@@ -1362,19 +1098,12 @@ def average_friend(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
 
 #----
 
-
-
 def attacking(Move_List):
   valid = []
   for move in range(len(Move_List)):
     if board[Move_List[move][1][1]][Move_List[move][1][0]] != Empty_:
       valid.append(Move_List[move])
   return valid 
-
-
-
-
-  
 
 #----
 import random
@@ -1447,16 +1176,10 @@ def OrderMoves(Moves, temp, for_White):
 
   sortedMoves = [checked for _,checked in sorted(zip(moveScore,checked))]
   sortedMoves.reverse()
-  #print(sortedMoves)
   return sortedMoves, fuzz
 
 
-
-
 ######################
-
-def adaptive(W_Moves, B_Moves, Performance_Fact):
-  return 3
 
 global BISHOP, ROOK, QUEEN, scoring, PEICE_WEIGHTING 
 BISHOP = [W_Bish, B_Bish]
@@ -1627,25 +1350,6 @@ def peice_square_optimised(board, W_Move, B_Move):
            [-0.27, -0.11, 0.04, 0.13, 0.14, 0.04, -0.05, -0.17],
            [-0.53, -0.34, -0.21, -0.11, -0.28, -0.14, -0.24, -0.43]]
   }
-  
-  CODE_CONVERT = {
-  "♟︎": "W_Pawn",
-  "♙": "B_Pawn",
-  '♝': "W_Bish",
-  '♗': "B_Bish",
-  '♞': "W_Knig",
-  '♘': "B_Knig",
-  '♜': "W_Rook",
-  '♖': "B_Rook",
-  '♛': "W_Quee",
-  '♕': "B_Quee",
-  '♚': "W_King",
-  '♔': "B_King",
-  '_': "Empty_",
-  '!': "W_En_Passant_Token",
-  '?': "B_En_Passant_Token",
-  '_': "Empty_"
-}
 
   for y, row in enumerate(board):
     for x, piece_code, in enumerate(row):
@@ -1653,18 +1357,11 @@ def peice_square_optimised(board, W_Move, B_Move):
       color_multiplier = color_multiplier_dict[peice[0]]
 
       if peice[2:6] in PIECE_SQUARE_VALUES:
-        score += ((PIECE_SQUARE_VALUES[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * MG_SCALE) + ((PEICE_SQUARE_VALUES_EG[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * EG_SCALE) * color_multiplier * PIECE_VALUES[peice[2:6]]
+        score += ((PIECE_SQUARE_VALUES[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (MG_SCALE / 1000)) + ((PEICE_SQUARE_VALUES_EG[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (EG_SCALE / 1000)) * color_multiplier * PIECE_VALUES[peice[2:6]]
                                                                                                                                       
   return score 
 
-
-
-
-
-
-
-
-
+#----
 
 CODE_CONVERT = {
   "♟︎": "W_Pawn",
@@ -1684,142 +1381,6 @@ CODE_CONVERT = {
   '?': "B_En_Passant_Token",
   '_': "Empty_"
 }
-
-
-  
-
-
-
-
-
-global pawn_square, knight_square, bishop_square, rook_square, queen_square, king_attack, king_defend, PEICE_SQUARE_VALUES
-
-
-PIECE_SQUARE_VALUES = {
-  'Pawn': [[ 350,   400,   450,   500,  500,   450,  400,  350],
-           [98, 134,  61,  95,  68, 126, 34, -11 ],
-           [-6,   7,  26,  31,  65,  56, 25, -20 ],
-           [-14,  13,   6,  21,  23,  12, 17, -23],
-           [-27,  -2,  -5,  12,  17,   6, 10, -25],                 #Changed to POTS evaluation as more discrete values :) - from chessprogramming wiki
-           [-26,  -4,  -4, -10,   3,   3, 33, -12],
-           [-35,  -1, -20, -23, -15,  24, 38, -22],
-           [ 350,   400,   450,   500,  500,   450,  400,  350]],
-
-  'Knig': [[-167, -89, -34, -49,  61, -97, -15, -107],
-           [-73, -41,  72,  36,  23,  62,   7,  -17],
-           [-47,  60,  37,  65,  84, 129,  73,   44],
-           [-9,  17,  19,  53,  37,  69,  18,   22],
-           [-13,   4,  16,  13,  28,  19,  21,   -8],
-           [-23,  -9,  12,  10,  19,  17,  25,  -16],
-           [-29, -53, -12,  -3,  -1,  18, -14,  -19],
-           [-105, -21, -58, -33, -17, -28, -19,  -23]],
-
-  'Bish': [[-29,   4, -81, -37, -25, -42,   7,  -8],
-           [-26,  16, -18, -13,  30,  59,  18, -47],
-           [-16,  37,  43,  40,  35,  50,  37,  -2],
-           [-4,   5,  19,  50,  37,  37,   7,  -2],
-           [-6,  13,  13,  26,  34,  12,  10,   4],
-           [0,  15,  15,  15,  14,  27,  18,  10],
-           [4,  15,  16,   0,   7,  21,  33,   1],
-           [-33,  -3, 0, -21, -13, 0, -39, -21]],
-
-  'Rook': [[32,  42,  32,  51, 63,  9,  31,  43],
-     [27,  32,  58,  62, 80, 67,  26,  44],
-     [-5,  19,  26,  36, 17, 45,  61,  16],
-    [-24, -11,   7,  26, 24, 35,  -8, -20],
-    [-36, -26, -12,  -1,  9, -7,   6, -23],
-    [-45, -25, -16, -17,  3,  0,  -5, -33],
-    [-44, -16, -20,  -9, -1, 11,  -6, -71],
-    [-19, -29,   1,  17, 16,  7, -45, -26]],
-
-  'Quee': [[-28,   0,  29,  12,  59,  44,  43,  45],
-    [-24, -39,  -5,   1, -16,  57,  28,  54],
-    [-13, -17,   7,   8,  29,  56,  47,  57],
-    [-27, -27, -16, -16,  -1,  17,  -2,   1],
-    [ -9, -26,  -9, -10,  -2,  -4,   3,  -3],
-    [-14,   2, -11,  -2,  -5,   2,  14,   5],
-    [-35,  -8,  11,   2,   8,  15,  -3,   1],
-    [-1, -18,  -9,  10, -15, -25, -31, -50]],
-
-  'King' : [[-0.65,  0.23,  0.16, -0.15, -0.56, -0.34,   0.02,  0.13],
-     [0.29,  -0.01, -0.2,  -0.07,  -0.08,  -0.04, -0.38, -0.29],
-     [-0.09,  0.24,   0.02, -0.16, -0.20,   0.06,  0.22, -0.22],
-    [-0.17, -0.2, -0.12, -0.27, -0.3, -0.25, -0.14, -0.36],
-    [-0.49,  -0.01, -0.27, -0.39, -0.46, -0.44, -0.33, -0.51],
-    [-1.4, -1.4, -2.2, -4.6, -4.4, -3.0, -1.5, -2.7],
-    [  0.1,   0.7,  -0.8, -6.4, -4.3, -1.6,   0.9,   0.8],
-    [-1.5,  3.6,  4.2, -5.4,   0.8, -2.8,  4.2,  1.4]],
-}
-
-PEICE_SQUARE_VALUES_EG = {
-  'Pawn': [[450, 500, 550, 600, 600, 550, 500, 450, 350],
-           [350,   400,   450,   500,  500,   450,  400,  350],
-           [178, 173, 158, 134, 147, 132, 165, 187],
-           [94, 100,  85,  67,  56,  53,  82,  84],
-           [32,  24,  13,   5,  -2,   4,  17,  17],
-           [4,   7,  -6,   1,   0,  -5,  -1,  -8],
-           [350,   400,   450,   500,  500,   450,  400,  350],
-           [450, 500, 550, 600, 600, 550, 500, 450, 350]],
-
-  'Knig': [[-58, -38, -13, -28, -31, -27, -63, -99],
-           [-25,  -8, -25,  -2,  -9, -25, -24, -52],
-           [-24, -20,  10,   9,  -1,  -9, -19, -41],
-           [-17,   3,  22,  22,  22,  11,   8, -18],
-           [-18,  -6,  16,  25,  16,  17,   4, -18],
-           [-23,  -3,  -1,  15,  10,  -3, -20, -22],
-           [-42, -20, -10,  -5,  -2, -20, -23, -44],
-           [-29, -51, -23, -15, -22, -18, -50, -64]],
-
-  'Bish': [[-14, -21, -11,  -8, -7,  -9, -17, -24],
-           [-8,  -4,   7, -12, -3, -13,  -4, -14],
-           [2,  -8,   0,  -1, -2,   6,   0,   4],
-           [-3,   9,  12,   9, 14,  10,   3,   2],
-           [-6,   3,  13,  19,  7,  10,  -3,  -9],
-           [-12,  -3,   8,  10, 13,   3,  -7, -15],
-           [-14, -18,  -7,  -1,  4,  -9, -15, -27],
-           [-23,  -9, -23,  -5, -9, -16,  -5, -17]],
-
-  'Rook': [[13, 10, 18, 15, 12,  12,   8,   5],
-           [11, 13, 13, 11, -3,   3,   8,   3],
-           [7,  7,  7,  5,  4,  -3,  -5,  -3],
-           [4,  3, 13,  1,  2,   1,  -1,   2],
-           [3,  5,  8,  4, -5,  -6,  -8, -11],
-           [-4,  0, -5, -1, -7, -12,  -8, -16],
-           [-6, -6,  0,  2, -9,  -9, -11,  -3],
-           [-9,  2,  3, -1, -5, -13,   4, -20]],
-
-  'Quee': [[-9,  22,  22,  27,  27,  19,  10,  20],
-           [-17,  20,  32,  41,  58,  25,  30,   0],
-           [-20,   6,   9,  49,  47,  35,  19,   9],
-           [3,  22,  24,  45,  57,  40,  57,  36],
-           [-18,  28,  19,  47,  31,  34,  39,  23],
-           [-16, -27,  15,   6,   9,  17,  10,   5],
-           [-22, -23, -30, -16, -16, -23, -36, -32],
-           [-33, -28, -22, -43,  -5, -32, -20, -41]],
-
-  'King': [[-0.74, -0.35, -0.18, -0.18, -0.11, 0.15, 0.04, -0.17],
-           [-0.12, 0.17, 0.14, 0.17, 0.17, 0.38, 0.23, 0.11],
-           [0.1, 0.17, 0.23, 0.15, 0.3, 0.45, 0.44, 0.13],
-           [-0.08, 0.22, 0.24, 0.15, 0.2, 0.45, 0.44, 0.13],
-           [-0.18, -0.04, 0.21, 0.24, 0.27, 0.23, 0.09, -0.11],
-           [-0.19, -0.03, 0.11, 0.21, 0.23, 0.16, 0.07, -0.09],
-           [-0.27, -0.11, 0.04, 0.13, 0.14, 0.04, -0.05, -0.17],
-           [-0.53, -0.34, -0.21, -0.11, -0.28, -0.14, -0.24, -0.43]]
-}
-          
-  
-
-
-                              
-  
-
-
-
-
-
-
-
-
 
 #-----------
 
@@ -1852,20 +1413,18 @@ def ai_perform(W_Moves, B_Moves, move_from, move_to, temp):
     en_location = passant_check(move_from, move_to, en_location)
     #Likewise, if pawn check for promotion
     board = promotion(move_to, move_from, board)
-
-  #print("LENGTH before", len(W_Moves), len(B_Moves))
   
   #Generate new legal moves
-  map = generate(move_to, move_from) #rev
+  map = generate(move_to, move_from) 
   W_Moves, B_Moves = explode(map, W_Moves, B_Moves)
-  #print(len(W_Moves), len(B_Moves))
 
-  #print("LENGTH after", len(W_Moves), len(B_Moves))
+  #Return to the original values of the ai
   temp = board
   board = holder
 
   return W_Moves, B_Moves, temp
 
+#-----
 
 
 def restless(has_captured, pawn_move):
@@ -1877,14 +1436,6 @@ def restless(has_captured, pawn_move):
     restlessness = 0 
   elif restlessness >= 50: #50 move rule
     GUI.fifty_moves()
-
-
-
-
-
-
-
-#### FOR ANALYSIS 
   
 #----
 
@@ -1917,11 +1468,6 @@ def bad_evaluate(temp, W_Moves, B_Moves):
       if temp[i][j] in WHITE:
         score += (0.05 * (8-i))
 
-  #print(score)
-        
-
-  #print(score)
-
   return score
   
 
@@ -1935,7 +1481,7 @@ def squareUnderAttack(location, attacking):
       return True
   return False
 
-#############################################################################################
+#############################################################################################   #TO DO BOOK ENGINE FOR V2
 
 def book_opening():
 
@@ -1965,10 +1511,6 @@ def book_log(move_to, log):
   #TO DO - MAKE MOVE LOGGING SYSTEM FOR OPENING ENGINE
 
 
-
-
-
-
 #=============================
 
 
@@ -1976,13 +1518,14 @@ def store_it(White_moves, Black_moves):
   global White_Moves, Black_Moves
   White_Moves, Black_Moves = White_moves, Black_moves
 
+#----
 
 def open_it():
   global White_Moves, Black_Moves
   return White_Moves, Black_Moves
 
 
-### 
+#----
 
 def king_attacked(Opposing_moves, board):
   for i in range(len(Opposing_moves)):
@@ -2005,8 +1548,6 @@ def refresh_moves(White_moves, Black_moves, board):
   White_moves, Black_moves = explode(map, White_moves, Black_moves)
 
   return White_moves, Black_moves 
-
-
 
 # (5) --------- Main gameplay loop
 
@@ -2092,18 +1633,12 @@ def gameplay_loop(click1, click2):
       map = load(King_location[0][1], King_location[0][0], King_location[0], map)
       White_moves, Black_moves = explode(map, White_moves, Black_moves)
 
-      #White_moves = unique(White_moves)
-      #Black_moves = unique(Black_moves)
-
       GUI.draw_board()
 
-
-      print("----- PERFORMANCE CHECKS ------")            #Remove after stage 1
+      print("----- PERFORMANCE CHECKS ------")            
       print("Complexity, white moves", len(White_moves))
       print("Complexity, black moves", len(Black_moves))
       Playing = True 
-
-      #Testing - if 
 
       new_White_Threatened, new_Black_Threatened = king_attacked(Black_moves, board), king_attacked(White_moves, board)
       if new_White_Threatened != White_Threatened:
@@ -2113,28 +1648,23 @@ def gameplay_loop(click1, click2):
         White_moves, Black_moves = refresh_moves(White_moves, Black_moves, board)
         Black_Threatened = new_Black_Threatened
 
-
-      #White_moves, Black_moves = refresh_moves(White_moves, Black_moves, board)
-
       White_moves, none = OrderMoves(White_moves, board, True)
       Black_moves, none = OrderMoves(Black_moves, board, False)
 
       #Checkmate engine here - handles pinned moves; stalemate and checkmate
-
-      #White_Threatened, Black_Threatened = king_attacked(Black_moves, board), king_attacked(White_moves, board)
       
       if insufficent_material(board):
         GUI.insufficent()
       
       White_valid, Black_valid = lazy_pin(board, White_moves, Black_moves, True), lazy_pin(board, White_moves, Black_moves, False)
 
-      if len(White_valid) == 0 and White_Playing:
+      if len(White_valid) == 0:
         if king_attacked(Black_moves, board): 
           GUI.checked(True)
         else: 
           GUI.stalemate()
 
-      if len(Black_valid) == 0 and not White_Playing:
+      if len(Black_valid) == 0:
         #Need to see if the position is checkmate or not 
         if king_attacked(White_moves, board): 
           GUI.checked(False)
@@ -2143,7 +1673,6 @@ def gameplay_loop(click1, click2):
       
       White_Playing, Moves_Tuple = turn(Time_Stamp)
       
-      #NEED TO SET COMMAND TO NORMAL 
       store_it(White_valid, Black_valid)
 
       MOVE_BONUS = 0
@@ -2157,7 +1686,6 @@ def gameplay_loop(click1, click2):
 
       utility = [peice_square_optimised(board, White_valid, Black_valid)]
       GUI.simple_update_utility(utility)
-
 
       GUI.locked = False
 

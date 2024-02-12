@@ -1,6 +1,6 @@
-Ideal_Pick
-2
-0.001
+Mini_Max_Optimised
+3
+5
 10
 9
 5

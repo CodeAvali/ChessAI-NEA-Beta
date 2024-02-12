@@ -1,6 +1,6 @@
-Human
+Mini_Max_Optimised
 3
-0.001
+5
 10
 9
 5

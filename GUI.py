@@ -12,8 +12,6 @@ import os
 from multiprocessing import *
 #import time 
 
-print("NO OF CORES", cpu_count())
-#pool = Pool(max(cpu_count() // 2, 1))
 
 #Constants 
 WIDTH = 600
@@ -22,7 +20,6 @@ BOARD_SIZE = 8
 SQUARE_SIZE = WIDTH // BOARD_SIZE
 global inc, locked
 inc = -1
-
 
 #Normalise character representations
 W_Pawn = "♟︎"
@@ -76,7 +73,6 @@ s.configure('yellow.Vertical.TProgressbar', foreground='purple', background='whi
 utility = Progressbar(orient=VERTICAL, length=560, maximum=200, style='yellow.Vertical.TProgressbar')
 utility.config(style='yellow.Vertical.TProgressbar')
 utility.place(x=620, y=20, width=15)
-#utility.config(style='yellow.Vertical.Tprogressbar')
 
 TROUGH_COLOR = 'white'
 BAR_COLOR = 'black'
@@ -158,16 +154,11 @@ def update_utility(utility_scores, current_processed):
     elif utility_value < 0:
         utility_value = 0.0001
     performed = len(utility_scores)
-    #timer()
-    #new_thread = threading.Thread(target=timer()).start()
 
     #check for first highlight
     if last_processed == None:
         last_processed = current_processed
 
-    #print("AVERAGE", utility_value)
-    #utility_value = utility_value - current_utility
-    #current_utility = utility_value
     utility.stop()
     utility.step(utility_value)
     if current_processed != None:
@@ -181,6 +172,7 @@ def update_utility(utility_scores, current_processed):
     draw_board()
 
 def on_click(event):
+    print("CLICKED ACTION")
     locked = True
     global command, WHITE, BLACK, board, White_Playing
     board = main.board
@@ -191,11 +183,9 @@ def on_click(event):
     X_location = round((x / SQUARE_SIZE))
     Y_location = round(y / SQUARE_SIZE)
     #From there, check that this was not an 'action' click
-    #print("WARNING - COMMAND")
-    #print(np.matrix(command))
     if command[Y_location][X_location] == "MOVE" or command[Y_location][X_location] == "ATTACK":
         #Perform the player's move; 
-        #print("ALARM - ACTIONING")
+        print("ALARM - ACTIONING")
         move_to = (X_location, Y_location)                                                   #TO DO
         for i in range(0,8):
             for j in range(0,8):
@@ -261,11 +251,6 @@ def highlight(X_location, Y_location):
     #for draw_board - command is used as a global var - and so call draw_board. 
     draw_board() 
 
-#window.bind('<Motion>',callback)
-    
-
-
-
 window.bind('<Button-1>', on_click if not locked else None)
 
 def on_chess_click(event):
@@ -285,8 +270,6 @@ board = [[B_Rook, B_Knig, B_Bish, B_Quee, B_King, B_Bish, B_Knig, B_Rook],
         [W_Pawn, W_Pawn, W_Pawn, W_Pawn, W_Pawn, W_Pawn, W_Pawn, W_Pawn], 
         [W_Rook, W_Knig, W_Bish, W_Quee, W_King, W_Bish, W_Knig, W_Rook]]
 
-#Intalise Tkinter
-
 window.title('ChessAI [Board]')
 
 #Canvas creation 
@@ -294,7 +277,7 @@ canvas = Canvas(window, width=WIDTH, height=HEIGHT)
 canvas.grid(row=0, column=0)
 display.grid(row=1, column=0)
 
-types = [W_King, B_King, W_Quee, B_Quee, W_Rook, B_Rook, W_Bish, B_Bish, W_Knig, B_Knig, W_Pawn, B_Pawn] # W_En_Passant_Token, B_En_Passant_Token]
+types = [W_King, B_King, W_Quee, B_Quee, W_Rook, B_Rook, W_Bish, B_Bish, W_Knig, B_Knig, W_Pawn, B_Pawn] 
 WHITE = [W_King, W_Quee, W_Rook, W_Bish, W_Knig, W_Pawn, W_En_Passant_Token]
 BLACK = [B_King, B_Quee, B_Rook, B_Bish, B_Knig, B_Pawn, B_En_Passant_Token]
 
@@ -304,12 +287,7 @@ sprites = []
 
 def draw_board():
     global inc, command, sprites, White_Playing
-    #print("!!!!!!! DRAWING A NEW BOARD")
-    colors = ["white", "grey"]
-    sprites = []
-    inc = -1
-    board = main.board
-    #print(board)
+    colors, sprites, inc, board = ["white", "grey"], [], -1, main.board
     for row in range(-1, BOARD_SIZE):
         for col in range(-1, BOARD_SIZE):
             #rint(row, col)
@@ -322,11 +300,6 @@ def draw_board():
                 x2 = SQUARE_SIZE
             if y1 == 0:
                 y2 = SQUARE_SIZE
-            #if finished:
-                #if message[0:4] == "White": 
-                    #color = 'white'
-                #else:
-                    #color = 'black'
             #Determine board colours - If forced by a peice selection 
             if command[row][col] == "SELECT":
                 color = 'blue'
@@ -347,17 +320,7 @@ def draw_board():
             else:  #Normal case - display grid structure
                 canvas.create_rectangle(x1, y1, x2, y2, fill=color)
             #Then regardless - pass to next player
-                
-    #Handle the message for the player
-    #display.config(state='normal')
-    #display.tag_configure("tag_name", justify='center')
-    #display.delete("1.0",END)
-    #display.insert(END, message(White_Playing))
-    #display.tag_add("tag_name", "1.0", "end")
-    #display.config(state='disabled')
-
     locked = False
-
     window.update_idletasks()
 
     #Hence - or otherwise, get the next player to play - which should be automatic if AI
@@ -368,7 +331,6 @@ def get_contents():
 
 def display_message():
     global message 
-    #current value - NEED TO IMPLEMENT PLAYER LOCKOUT FOR TIMEOUT
     if not finished:
       message = ''
       if bool_pointer(pointer):
@@ -390,9 +352,7 @@ def display_image(col, row, x1, y1):
         if board[row][col] == types[i]:
             sprites.append(ImageTk.PhotoImage(file=image_files[i]))
             inc = (len(sprites)-1)
-            #print("MEMORY LEAK", inc)
 
-    #print(inc)
     canvas.create_image(x1 + (0.5 * SQUARE_SIZE), y1 + (0.5 * SQUARE_SIZE), image=sprites[inc])
     
 
@@ -412,7 +372,6 @@ def count_down():
     while not finished:
         increment += 10
         window.after(10)
-        #print("ZOOM", increment)
         if time[pointer] > -1 and increment == 1000:
             minute, second = (time[pointer] // 60, time[pointer] % 60)
             sec.set(second)
@@ -482,7 +441,6 @@ def default():
 
 def timer():
     global finished, pointer
-    #print("TIMER RUNNING")
     display.config(state='normal')
     if not finished:
       warning()
@@ -549,10 +507,9 @@ def form(time):
     if int(second) < 10:
         second = "0" + str(second)
     message = "                       " + str(minute) + ":" + str(second)
-    #print("TEST", message)
     return message 
-        
-#sign2 = Label(window, font = ('Helvetica bold', 10), text = 'AI1').place(x=600, y=100)
+
+#----
 
 def console():
     #TO DO - FOR QUALITY - POSITION THE TOP LEVEL WINDOW RELATIVE TO...
@@ -566,6 +523,7 @@ def console():
     current_file = 'Ai_file1.txt'
     underline_font = font.Font(underline=TRUE, family="Helvetica",size=10)
     regular_font = font.Font(underline=FALSE, family="Helvetica",size=10)
+    link_font = font.Font(underline=TRUE, family="Helevetica", size=10)
 
 
 
@@ -585,8 +543,6 @@ def console():
     black_option.insert(END, 'Black Player')
 
     #modify_option = Checkbutton(console_window, text="Modifying White file").grid(row = 3, column = 0)
-
-    ##TEST CODE
     
     label_text = StringVar()
     label = Label(console_window, textvariable=label_text, width=52, anchor=W, background=None) #TO DO - CHANGE COLOUR CORRESPONDINGLY https://stackoverflow.com/questions/42942534/how-to-change-the-color-of-a-tkinter-label-programmatically 
@@ -638,45 +594,63 @@ def console():
         entry["widget"].bind("<KeyRelease>", lambda event, widget=entry["widget"], line=entry["line"]: write_file_val(widget, line))
 
     #Nonclamature and additional options 
+        
+    def make_hyperlink(label, callback):
+        label.config(cursor="hand2")
+        label.bind("<Button-1>", lambda event: callback())
+
+    def open_readme():
+        url = 'https://github.com/CodeAvali/ChessAI-NEA-Beta/blob/main/README.md'
+        webbrowser.open_new(url)
 
 
-    tip = Text(console_window, height = 2, width = 45, font=regular_font)
+    tip = Label(console_window, width = 45, text="For clarification on constants, see:", font=regular_font, background="White")
     tip.grid(row = 14, sticky=W)
-    tip.insert(END, "For clarrification on what the constants do, please see the read.me")
-
+    tip_link = Label(console_window, width = 45, text="Read.me", font=link_font, background="White", foreground="Blue")
+    tip_link.grid(row=15, sticky=W)
+    make_hyperlink(tip_link, open_readme)
+    #tip.insert(END, "For clarrification on what the constants do, please see the read.me")          #TO LINK: README 
+                                                                                                    #https://www.tutorialspoint.com/how-to-create-hyperlink-in-a-tkinter-text-widget#:~:text=Tkinter%20Text%20widgets%20are%20generally,using%20HyperLinkManager%20snippet%20in%20Python.
     additional = Label(console_window, text="Aditional Options:", font=underline_font)
-    additional.grid(row=15, sticky = 'W')
+    additional.grid(row=16, sticky = 'W')
 
     #
     highlighting_choice = BooleanVar()
     highlighting_choice.set(FALSE)
 
     highlighting_option= Checkbutton(console_window,  textvariable=highlighting_choice, variable=highlighting_choice, onvalue="Highlighting enabled - (Very costly)", offvalue="No AI Highlighting", command=allow_highlighting)
-    highlighting_option.grid(row=16, sticky='W')
-    #highlighting_option.invoke()
+    highlighting_option.grid(row=17, sticky='W')
 
     utility_choice = StringVar()
     utility_choice= Checkbutton(console_window,  textvariable=utility_choice, variable=utility_choice, onvalue="AI utility updates enabled - (costly)", offvalue="No Ai Utility updates", command=allow_utility)
-    utility_choice.grid(row=17, sticky='W')
+    utility_choice.grid(row=18, sticky='W')
 
     #Repeat option 
-    Label(console_window, text="Repeated games").grid(row=18, sticky='W')
+    Label(console_window, text="Repeated games").grid(row=19, sticky='W')
     Repeat_Option = Entry(console_window, width=30)
-    Repeat_Option.grid(row=18, sticky='E')
+    Repeat_Option.grid(row=19, sticky='E')
 
     #Change associated file
-    Label(console_window, text="Change file identifer").grid(row=19, sticky='W')
+    Label(console_window, text="Change file identifer").grid(row=20, sticky='W')
     Change_file = Entry(console_window, width=30)
-    Change_file.grid(row=19, sticky='E')
+    Change_file.grid(row=20, sticky='E')
 
     
     console_window.update()
 
-    #empty = Label(console_window, width=45, text='').grid(row=19, column=0, rowspan=5)
-    
+    #Handle links 
+    import webbrowser
+
+    def open_git():
+        url = 'https://www.youtube.com/watch?v=xvFZjo5PgG0'
+        webbrowser.open_new(url)
+
+
     #Ownership
-    copymark = Label(console_window, width = 45, text="Made by CodeAvali -> To Github", font=regular_font).grid(row = 25, sticky='W', pady=180)
-    
+    copymark = Label(console_window, width = 45, text="Made by CodeAvali -> To Github", font=regular_font, foreground="Blue")
+    copymark.grid(row = 25, sticky='W', pady=175)                                       #TO DO - LINK: https://www.tutorialspoint.com/how-to-create-hyperlink-in-a-tkinter-text-widget#:~:text=Tkinter%20Text%20widgets%20are%20generally,using%20HyperLinkManager%20snippet%20in%20Python.
+    make_hyperlink(copymark, open_git)
+
 #----
 
 def get_file_val(num):
@@ -744,11 +718,6 @@ def update_personality_tag(White_Playing, Personality):
         var = Personality + "   [Ai_file2]"    
         black_option.delete("1.0","end")
         black_option.insert(END, var)
-
-
-
-
-
     
 def allow_highlighting():
     global UPDATE_OPT
@@ -761,22 +730,6 @@ def allow_highlighting():
 
 def allow_utility():
     print("YAY")
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     console_window.update()
 
 def begin():
@@ -785,19 +738,6 @@ def begin():
     counter = threading.Thread(target=count_down(), name="counter").start()
 
 console()
-#counter = threading.Thread(target=count_down(), name="counter") #Ah thats why
-#counter.start()
-
-
-        
-        
-        
-
-
-
-
-
-
 
 def players():
     global White_Playing, board
@@ -808,17 +748,6 @@ def players():
         #Perform ai actions
         print("------------------ CALLED AI -----------------------------")
         new_thread = threading.Thread(target=main.gameplay_loop((-1, -1), (-1, -1)), name="alt").start()
-        #proc = multiprocessing.Process(target=main.gameplay_loop, args=((-1, -1), (-1, -1))).start()                     #MULTIPROCESSING LEADS TO HARDWARE CRASH DO NOT USE
-
-
-
-#Need to create a top-level window to allow for input
-
-
-
-
-
-
 
 #Start the game
 def start_game():
@@ -829,7 +758,6 @@ def start_game():
     players()
     window.mainloop()
 
-#start_game()
 
 #Need to check for clicks
 
@@ -846,15 +774,6 @@ def on_click(event):
 
 window.mainloop()
 
-
-#----------------------------------------------------------------------------------
-#pack() is the simple method to output to the screen 
-#Grid system to place widgets - row and columns 
-#The grid system is relative - null columns/rows are kinda ignored 
-#Rememeber that this is JUST PYTHON - can eaisly use pythonic/OOP structures :)
-
-
-
 #TK progress bar
 # https://stackoverflow.com/questions/13510882/how-to-change-ttk-progressbar-color-in-python
 
@@ -863,15 +782,3 @@ window.mainloop()
 
 
 
-
-#AI TEXTFILE VALUES - prelimary 
-
-#Queen Value:
-#Rook Value:
-#Bishop Value:
-#Knight Value:
-#Pawn Value:
-#Personality
-#Depth
-#Restlessness
-#Eng_game Transition

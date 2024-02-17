@@ -648,28 +648,47 @@ def reset():
   Blocked_Tuple = []
   Attack_Tuple = []
   Protected_Tuple = []
-  White_Moves = Moves_Inital.White_moves
-  Black_Moves = Moves_Inital.Black_moves
-  White_moves = Moves_Inital.White_moves
-  Black_moves = Moves_Inital.Black_moves
+  White_Moves = copy.deepcopy(Moves_Inital.White_moves_original)
+  Black_Moves = copy.deepcopy(Moves_Inital.Black_moves_original)
+  White_moves = copy.deepcopy(Moves_Inital.White_moves_original)
+  Black_moves = copy.deepcopy(Moves_Inital.Black_moves_original)
+
   en_location = [[-1, -1], [-1, -1]]    #first index array is used for White; 2nd index array is used for Black 
   en_flag = -1
   King_location = [[7, 4], [0, 4]]
   Checked = False
-  player = ['Ai','Ai']
   utility = 0 
   restlessness = 0 
 
   castling_permisions = [True, True]
+  #White_moves, Black_moves = refresh_moves(White_moves, Black_moves, board)
+  #White_Moves, Black_Moves = White_moves, Black_moves
+  
+  print("AFTER RESET", len(White_moves), len(White_Moves), len(Black_moves), len(Black_Moves))
+  
 
   #Other
 
-  White_moves, Black_moves = White_Moves, Black_Moves
+  if White_Playing:
+    White_Playing = False
+    Time_Stamp = 1
+    GUI.pointer = 1
+  else:
+    White_Playing = True
+    Time_Stamp = 0
+    GUI.pointer = 0
 
-  store_it(White_Moves, Black_Moves)
+  #store_it(White_Moves, Black_Moves)
+  time.sleep(5)
   GUI.default()
+  print(Time_Stamp)
 
 #---
+
+
+def get_moves():
+  print("FINDING REAL", len(White_Moves), len(Black_Moves))
+  return White_Moves, Black_Moves
   
 W_Pawn = "♟︎"
 B_Pawn = "♙"
@@ -713,13 +732,13 @@ Moves_Tuple = []
 Blocked_Tuple = []
 Attack_Tuple = []
 Protected_Tuple = []
-White_Moves = Moves_Inital.White_moves
-Black_Moves = Moves_Inital.Black_moves
+White_Moves = copy.deepcopy(Moves_Inital.White_moves_original)
+Black_Moves = copy.deepcopy(Moves_Inital.Black_moves_original)
 en_location = [[-1, -1], [-1, -1]]    #first index array is used for White; 2nd index array is used for Black 
 en_flag = -1
 King_location = [[7, 4], [0, 4]]
 Checked = False
-player = ['Ai','Ai']
+player = ['','']
 utility = 0 
 restlessness = 0 
 
@@ -765,6 +784,7 @@ def ai_call():
   #Handle ai time back to GUI - and to terminate the game if the time has run out 
 
   end = time.time()
+  print("TIME", end-start, PERSONALITY)
   total = round(end - start)
   GUI.time[GUI.pointer] -= total
   if GUI.time[GUI.pointer] < 0:
@@ -777,7 +797,7 @@ def ai_call():
 
 
 def ai_load(for_white):
-  global QUEEN_VALUE, ROOK_VALUE, BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, PERSONALITY, DEPTH, RESTLESSNESS_FACTOR, END_GAME_TRANSITION
+  global QUEEN_VALUE, ROOK_VALUE, BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, PERSONALITY, DEPTH, RESTLESSNESS_FACTOR, END_GAME_TRANSITION, WINS
 
   if for_white:
     file = open('Ai_file1.txt', 'r') 
@@ -793,6 +813,7 @@ def ai_load(for_white):
   BISHOP_VALUE = int(file.readline().strip())
   KNIGHT_VALUE = int(file.readline().strip())
   PAWN_VALUE = int(file.readline().strip())
+  WINS = str(file.readline().strip())
 
   file.close()
 
@@ -806,19 +827,22 @@ def ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp):
     #NEED to update player tag 
     if current != player[0 if White_Playing else 1]:
       player[0 if White_Playing else 1] = str(current)
-      GUI.update_personality_tag(White_Playing, player[0 if White_Playing else 1])
+      print("UPDATING", WINS)
+      GUI.update_personality_tag(White_Playing, player[0 if White_Playing else 1], WINS)
 
     #Hence, call the respective ai function
     if current == 'Human':
       return selected
     if current == 'Ideal_Pick':
-        result = ideal_pick(board, Moves_Tuple)
+        result = ideal_pick(temp, Moves_Tuple)
+    elif current == 'Mini_Max':
+        result = mini_max(temp, W_moves, B_moves, White_Playing, cap)
     elif current == 'Mini_Max_Optimised':
         result = optimised_min_max(temp, W_moves, B_moves, White_Playing, MIN, MAX, cap)
     elif current == 'Random_Pick':
         result = random_pick(Moves_Tuple)
     elif current == 'Average_Friend':
-        result = average_friend(board, W_moves, B_moves, White_Playing, MIN, MAX, cap)
+        result = average_friend(temp, W_moves, B_moves, White_Playing, MIN, MAX, cap)
     #Additional ai personalities can simply be appended here:
     #//
     #//
@@ -865,41 +889,41 @@ def ideal_pick(board, moves_tuple):
 
 #----
 
-def mini_max(board, W_Moves, B_Moves, depth):
-  global White_Playing
-  moves = W_Moves if White_Playing else B_Moves
+def mini_max(board, W_Move, B_Move, White_Playing, depth):
+  moves = W_Move if White_Playing else B_Move
   scores = []
 
-  if White_Playing and W_Moves == []:
-    scores = [0]
-    return None
-  elif B_Moves == []:
-    scores = [0]
-    return None
+  #Root node - get utility value 
+  if depth == 0:
+    return bad_evaluate(board, W_Move, B_Move)
 
+  #Stalemate condition - also acts as essential validation
+  if White_Playing and W_Move == []:
+    return 0
+  elif not White_Playing and B_Move == []:
+    return 0 
+  
   for i in range(len(moves)):
     if board[moves[i][0][1]][moves[i][0][0]] != Empty_:
-      temp = copy.deepcopy(board)
-      #perform the move
-      W_Moves, B_Moves, temp = ai_perform(W_Moves, B_Moves, moves[i][0], moves[i][1], temp)
-      value = bad_evaluate(temp, W_Moves, B_Moves)
+      temp, W_Move, B_Move = copy.deepcopy(board), copy.deepcopy(W_Move), copy.deepcopy(B_Move)
+      #Perform the move
+      W_Move, B_Move, temp = ai_perform(W_Move, B_Move, moves[i][0], moves[i][1], temp)
+      #Then pass into minimax recursively 
+      scores.append(mini_max(temp, W_Move, B_Move, not White_Playing, depth - 1))
 
-      if depth > 1:
-        temp_best_move = mini_max(temp, W_Moves, B_Moves, depth - 1)
-        W_Moves, B_Moves, temp = ai_perform(W_Moves, B_Moves, moves[i][0], moves[i][1], temp)
-        value = bad_evaluate(temp, W_Moves, B_Moves)
-        #check for no possible moves
-      scores.append(value)
-      #print("SCORES", scores)
-
-  if White_Playing:
-    best_move = moves[scores.index(max(scores))]
-    White_Playing = False
+  #If at root node, then return 'optimal move'
+  if depth == cap:
+    if White_Playing:
+      return moves[scores.index(max(scores))]
+    else:
+      return moves[scores.index(min(scores))]                                                                 
+  
+  #If a called instance, then return chosen adversial move 
   else:
-    best_move = moves[scores.index(min(scores))]
-    White_Playing = True
-
-  return best_move
+    if White_Playing:
+      return max(scores)
+    else:
+      return min(scores)
       
 #-------------
 
@@ -915,7 +939,8 @@ def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
     return 0 #As stalemate natrually 
 
   if depth == 0: 
-    normal = peice_square_optimised(board, W_Move, B_Move)
+    #normal = peice_square_optimised(board, W_Move, B_Move)
+    normal = bad_evaluate(board, W_Move, B_Move)
     return normal 
 
   moves, value, scores= [], [], []
@@ -926,7 +951,7 @@ def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
     if fuzz and depth != cap:
       B_Move = lazy_pin(board, W_Move, B_Move, False)
       if len(B_Move) == 0 and king_attacked(W_Move, board):
-        return (100 + (25 * depth))
+        return (500 + (100 * depth))
     #Then; need to iterate through all children 
     for i in range(len(moves)):
       temp = copy.deepcopy(board)
@@ -935,10 +960,10 @@ def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
       value = optimised_min_max(temp, W_Moves, B_Moves, False, alpha, beta, depth - 1)  #Pass min-max to other player.
       #Now; do alpha beta prunning
       best = max(best, value)
+      if best > beta:            #<=
+        return best             #Prune the tree as limits reached.
       alpha = max(alpha, best)
-      if beta <= alpha:            #<=
-        break                    #Prune the tree as limits reached.
-      elif depth == cap:
+      if depth == cap:
         scores.append(value + random.uniform(-HAZE, HAZE))
         GUI.lazy_update(scores, moves[scores.index(max(scores))])
 
@@ -951,7 +976,7 @@ def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
     if fuzz and depth != cap:
       W_Move = lazy_pin(board, W_Move, B_Move, True)
       if len(W_Move) == 0 and king_attacked(B_Move, board):
-        return (-100 + (-25 * depth))
+        return (-500 + (-100 * depth))
     #Then iterate through all children
     for i in range(len(moves)):
       temp = copy.deepcopy(board)
@@ -960,10 +985,10 @@ def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
       value = optimised_min_max(temp, W_Moves, B_Moves, True, alpha, beta, depth - 1) #Pass min-max to other player. 
       #Now; do alpha beta prunning.
       best = min(best, value)
+      if best < alpha:      
+        return best              #Prune the tree as limits reached - if playing optimally; nodes arent considered. 
       beta = min(beta, best)
-      if beta <= alpha:      
-        break                  #Prune the tree as limits reached - if playing optimally; nodes arent considered. 
-      elif depth == cap:
+      if depth == cap:
         scores.append(value + random.uniform(-HAZE, HAZE))
         GUI.lazy_update(scores, moves[scores.index(min(scores))])
     
@@ -1357,7 +1382,7 @@ def peice_square_optimised(board, W_Move, B_Move):
       color_multiplier = color_multiplier_dict[peice[0]]
 
       if peice[2:6] in PIECE_SQUARE_VALUES:
-        score += ((PIECE_SQUARE_VALUES[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (MG_SCALE / 1000)) + ((PEICE_SQUARE_VALUES_EG[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (EG_SCALE / 1000)) * color_multiplier * PIECE_VALUES[peice[2:6]]
+        score += ((PIECE_SQUARE_VALUES[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (MG_SCALE / 10000)) + ((PEICE_SQUARE_VALUES_EG[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (EG_SCALE / 10000)) * color_multiplier * PIECE_VALUES[peice[2:6]]
                                                                                                                                       
   return score 
 
@@ -1572,6 +1597,11 @@ def gameplay_loop(click1, click2):
     White_Playing, Moves_Tuple = turn(Time_Stamp)
     White_Playing = GUI.bool_pointer(GUI.pointer)
     Time_Stamp += 1
+
+    #Need to check for Stalemate
+    if len(Moves_Tuple) == 0:
+      GUI.stalemate()
+      return 0
   
     # Asking the user for a move
     Valid = False
@@ -1655,21 +1685,24 @@ def gameplay_loop(click1, click2):
       
       if insufficent_material(board):
         GUI.insufficent()
-      
+
+      #Generate all legal moves =- checking for pinned peices
       White_valid, Black_valid = lazy_pin(board, White_moves, Black_moves, True), lazy_pin(board, White_moves, Black_moves, False)
 
       if len(White_valid) == 0:
         if king_attacked(Black_moves, board): 
           GUI.checked(True)
-        else: 
-          GUI.stalemate()
+          return 0
+        #elif not White_Playing:
+          #GUI.stalemate()
 
       if len(Black_valid) == 0:
         #Need to see if the position is checkmate or not 
         if king_attacked(White_moves, board): 
           GUI.checked(False)
-        else: 
-          GUI.stalemate()
+          return 0 
+        #elif White_Playing:                                                                                #TO DO - CHANGE STALEMATE CHECK TO BE FIRST. 
+          #GUI.stalemate()
       
       White_Playing, Moves_Tuple = turn(Time_Stamp)
       

@@ -223,8 +223,8 @@ def highlight(X_location, Y_location):
     command[Y_location][X_location] = "SELECT"
     #From there; check the moves belonging to the respective peice
     board = main.board
-    White_Moves = main.White_Moves
-    Black_Moves = main.Black_Moves
+    White_Moves, Black_Moves = main.get_moves()
+    print(len(White_Moves), len(Black_Moves))
     #For the White Player
     if board[Y_location][X_location] in WHITE:
         print("WHITE COMMAND")
@@ -440,7 +440,7 @@ def default():
     
 
 def timer():
-    global finished, pointer
+    global finished, pointer, White_Moves, Black_Moves
     display.config(state='normal')
     if not finished:
       warning()
@@ -457,25 +457,39 @@ def timer():
     window.update()
 
     if finished: 
+        update_wins(main.White_Playing)
         main.reset()
         window.update()
         draw_board()
         #window.after(50000)
         #window.destroy()
         #counter.join()
-        if pointer == 0:
-            pointer = 1
-            main.White_Playing = True
-            main.Time_Stamp = 0
-        else:
-            pointer = 0 
-            main.White_Playing = False
-            main.Time_Stamp = 1
+        #White_Moves = Moves_Inital.White_moves_original
+        #Black_Moves = Moves_Inital.Black_moves_original
         window.after(5000)
         finished = False
         players()
     else:
         players()
+
+def update_wins(for_White):
+    if for_White:
+        current_file = 'Ai_file1.txt'
+    else:
+        current_file = 'Ai_file2.txt'
+
+    file = open(current_file)
+    content = file.readlines()
+    current_wins = int(content[9]) + 1
+    print("GOT CURRENT WINS", current_wins)
+    content[9] = str(current_wins)
+
+    # and write everything back
+    with open(current_file, 'w') as file:
+       file.writelines(content)
+
+    file.close()
+
 
 global forced
 forced = ''
@@ -533,7 +547,7 @@ def console():
     start_option = Button(console_window, text = 'Start game?', command=begin, width=50)
     start_option.grid(row=0, column=0, columnspan=1)   
     white_option = Text(console_window, height = 1, width = 45, bg = 'White', font=regular_font)
-    white_option.grid(row=1, column=0, columnspan=1)   #.grid(row=1, column=0)
+    white_option.grid(row=1, column=0, columnspan=1)   
     var = StringVar()
     var = "White Player"
     white_option.insert(END, var)
@@ -667,14 +681,10 @@ def write_file_val(widget, line):
 
     #Get the written contents from the entry box 
     new = widget.get()
-    print("RECIEVED", new)
-
     current = open(current_file)
     content = current.readlines()
     content[line-1] = str(new) + '\n'
     current.close()
-
-    print(content)
 
     # and write everything back
     with open(current_file, 'w') as file:
@@ -708,14 +718,14 @@ def change_current_file():
 
 #-----
     
-def update_personality_tag(White_Playing, Personality):
+def update_personality_tag(White_Playing, Personality, wins):
     var = StringVar()
     if White_Playing:
-        var = Personality + "   [Ai_file1]"
+        var = Personality + "   [Ai_file1] " #+ str(wins)
         white_option.delete("1.0","end")
         white_option.insert(END, var)
     else:
-        var = Personality + "   [Ai_file2]"    
+        var = Personality + "   [Ai_file2] " #+ str(wins)
         black_option.delete("1.0","end")
         black_option.insert(END, var)
     
@@ -733,7 +743,8 @@ def allow_utility():
     console_window.update()
 
 def begin():
-    global counter
+    global counter, command 
+    command = reset_command()
     start_option.config(text = 'AI Enabled: Please do not change any values')
     counter = threading.Thread(target=count_down(), name="counter").start()
 

@@ -82,3 +82,64 @@ def belonging(move_from, Moves_Tuple):
       return True
     else: 
       return False
+    
+#----
+    
+def basic_utility(board, W_Move, B_Move):
+  score = (len(W_Move) - len(B_Move)) / 10
+
+  PEICE_VALUES = {
+    'Pawn': 1,
+    'Knig': 3,
+    'Bish': 3,
+    'Rook': 5,
+    'Quee': 9,
+    'King': 100,
+  }
+
+  score = 0
+  for y, row in enumerate(board):
+    for x, peice_code in enumerate(row):
+      peice = CODE_CONVERT[peice_code]
+      color_multipler = color_multiplier_dict[peice[0]]
+      #Then add to score if peice
+      if peice[2:6] in PEICE_VALUES:
+        score += color_multipler * PEICE_VALUES[peice[2:6]]
+
+  return score 
+
+#--------
+
+def mini_max(board, W_Moves, B_Moves, depth):
+  global White_Playing
+  moves = W_Moves if White_Playing else B_Moves
+  scores = []
+
+  if White_Playing and W_Moves == []:
+    return 0
+  elif B_Moves == []:
+    return 0
+
+  for i in range(len(moves)):
+    if board[moves[i][0][1]][moves[i][0][0]] != Empty_:
+      temp = copy.deepcopy(board)
+      #perform the move
+      W_Moves, B_Moves, temp = ai_perform(W_Moves, B_Moves, moves[i][0], moves[i][1], temp)
+      value = bad_evaluate(temp, W_Moves, B_Moves)
+
+      if depth > 1:
+        temp_best_move = mini_max(temp, W_Moves, B_Moves, depth - 1)
+        W_Moves, B_Moves, temp = ai_perform(W_Moves, B_Moves, moves[i][0], moves[i][1], temp)
+        value = bad_evaluate(temp, W_Moves, B_Moves)
+        #check for no possible moves
+      scores.append(value)
+      #print("SCORES", scores)
+
+  if White_Playing:
+    best_move = moves[scores.index(max(scores))]
+    White_Playing = False
+  else:
+    best_move = moves[scores.index(min(scores))]
+    White_Playing = True
+
+  return best_move

@@ -61,12 +61,12 @@ def perform(move_to, move_from, board):
     White_moves = clean(move_from, White_moves)
     White_moves = clean(move_to, White_moves)
     Black_moves = clean(move_to, Black_moves)        
-    #Black_moves = clean(move_from, Black_moves)
+    Black_moves = clean(move_from, Black_moves)
   else:  #Otherwise; black player
     Black_moves = clean(move_from, Black_moves)
     Black_moves = clean(move_to, Black_moves)
     White_moves = clean(move_to, White_moves)           
-    #White_moves = clean(move_from, White_moves)
+    White_moves = clean(move_from, White_moves)
 
   return board
 
@@ -365,7 +365,7 @@ def lazy_pin(board, White_Moves, Black_Moves, for_White):
       W_Moves, B_Moves, temp = ai_perform(W_Moves, B_Moves, W_Moves[i][0], W_Moves[i][1], temp)                        #W_Moves, B_Moves, temp = ai_perform(W_Move, B_Move, moves[i][0], moves[i][1], temp)
       #Given that; check to see if any of the opposing moves attack the White_King
       valid = True
-      B_Moves, none = OrderMoves(B_Moves, temp, False)
+      #B_Moves, none = OrderMoves(B_Moves, temp, False)
       for j in range(len(B_Moves)):
         if (B_Moves[j][0][0] == B_Moves[j][1][0]) and temp[B_Moves[j][1][1]][B_Moves[j][1][0]] == "B_Pawn":
           continue 
@@ -436,10 +436,10 @@ def legal(move_to, move_from, move_space):
 
 def clean(delete, moves_structure):
 
-    cleaned = tuple(delete)
-    checked = [move for move in moves_structure if move[0] != cleaned]  #List comprehension improves clarity
+    #cleaned = tuple(delete)
+    #checked = [move for move in moves_structure if move[0] != delete]  #List comprehension improves clarity
 
-    return checked
+    return [move for move in moves_structure if move[0] != delete]
 
   #----
 
@@ -690,8 +690,8 @@ def get_moves():
   print("FINDING REAL", len(White_Moves), len(Black_Moves))
   return White_Moves, Black_Moves
   
-W_Pawn = "♟︎"
-B_Pawn = "♙"
+W_Pawn = '♟︎'
+B_Pawn = '♙'
 W_Bish = '♝'
 B_Bish = '♗' 
 W_Knig = '♞'
@@ -738,11 +738,18 @@ en_location = [[-1, -1], [-1, -1]]    #first index array is used for White; 2nd 
 en_flag = -1
 King_location = [[7, 4], [0, 4]]
 Checked = False
-player = ['','']
+player = ['','']     #CHANGE TO BE EMPTY STRING
 utility = 0 
 restlessness = 0 
 
 castling_permisions = [True, True]
+global total_nodes
+total_nodes = 0
+MG_SCALE = 1
+EG_SCALE = 0
+
+current_hash = []
+repeated = []
 
 
 #----- AI TESTS
@@ -755,41 +762,37 @@ def ai_time():
 
 def ai_call():
   global White_moves, Black_moves, cap, Moves_Tuple
-  temp = copy.deepcopy(board)
-  W_moves = copy.deepcopy(White_moves)
-  B_moves = copy.deepcopy(Black_moves)
+  #Create deepcopies 
+  temp, W_moves, B_moves = copy.deepcopy(board), copy.deepcopy(White_moves), copy.deepcopy(Black_moves)
 
-  #Need to shuffle order of moves_tuple
+  #Get ai personality files from respective and start timing
   ai_load(White_Playing)
-
-  #Start time marking
   start = time.time()
 
   #Create conditions for peice_value transitions
   global MG_SCALE, EG_SCALE
   EG_SCALE = min((END_GAME_TRANSITION / 100)* (Time_Stamp // 2), 1)
   MG_SCALE = max(0, 1 - EG_SCALE)
-  #print("################### SCALES", MG_SCALE, EG_SCALE)
 
   global MAX, MIN, HAZE
   MAX, MIN, HAZE = 1000, -1000, (restlessness / RESTLESSNESS_FACTOR)**2
   cap = DEPTH
-  #print("Running at ------------------------------>", cap, HAZE, restlessness, RESTLESSNESS_FACTOR, "PAWN VALUE CHECK", PAWN_VALUE, "DEPTH", cap)
+  
+  print("RESTLESSNESS", HAZE)
 
+  #Pass to respective ai
   result = ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp)
-  #print("RETURNED", result)
-
+  print("RETURNED", result)
   move_from, move_to = (result[0][0], result[0][1]), (result[1][0], result[1][1])
 
   #Handle ai time back to GUI - and to terminate the game if the time has run out 
-
-  end = time.time()
-  print("TIME", end-start, PERSONALITY)
-  total = round(end - start)
+  total = round(time.time() - start)
   GUI.time[GUI.pointer] -= total
   if GUI.time[GUI.pointer] < 0:
     GUI.finish()
     GUI.timer()
+
+  #Finally, return back the chosen move 
   return move_from, move_to
 
 
@@ -824,6 +827,8 @@ def ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp):
     #Get personality
     current = PERSONALITY
 
+    start = time.time()
+
     #NEED to update player tag 
     if current != player[0 if White_Playing else 1]:
       player[0 if White_Playing else 1] = str(current)
@@ -833,295 +838,36 @@ def ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp):
     #Hence, call the respective ai function
     if current == 'Human':
       return selected
-    if current == 'Ideal_Pick':
-        result = ideal_pick(temp, Moves_Tuple)
-    elif current == 'Mini_Max':
-        result = mini_max(temp, W_moves, B_moves, White_Playing, cap)
+    elif current == 'Mini_Max_Original':
+        import algorithms.Mini_Max_Original
+        result = algorithms.Mini_Max_Original.call(temp, W_moves, B_moves, White_Playing, cap)
     elif current == 'Mini_Max_Optimised':
-        result = optimised_min_max(temp, W_moves, B_moves, White_Playing, MIN, MAX, cap)
+        import algorithms.Mini_Max_Optimised
+        result = algorithms.Mini_Max_Optimised.call(temp, W_moves, B_moves, White_Playing, MIN, MAX, cap)
     elif current == 'Random_Pick':
-        result = random_pick(Moves_Tuple)
-    elif current == 'Average_Friend':
-        result = average_friend(temp, W_moves, B_moves, White_Playing, MIN, MAX, cap)
+        import algorithms.Random_Pick
+        result = algorithms.Random_Pick.call(Moves_Tuple)
+    elif current == 'Order_Pick':
+        import algorithms.Order_Pick
+        result = algorithms.Order_Pick.call(board, Moves_Tuple)
+    elif current == 'Mini_Max_Aware':
+        import algorithms.Mini_Max_Iterative
+        result = algorithms.Mini_Max_Iterative.call(temp, W_moves, B_moves, White_Playing, MIN, MAX, cap)
     #Additional ai personalities can simply be appended here:
     #//
     #//
     #//
     #//
     #-------------------------------------------------------
+        
+    print(time.time()-start, "TIME SPENT")
     
     #Then; return the produced move
     return result 
 
 #-------
 
-def random_pick(moves_tuple):
-  return moves_tuple[random.randint(0, len(moves_tuple)-1)]
-
-#-------
-
-def ideal_pick(board, moves_tuple):
-  moves = moves_tuple 
-  scores = []
-
-  for i in range(len(moves)):
-    temp = copy.deepcopy(board)
-
-    value = peice_square_optimised(board, moves_tuple, moves_tuple)
-
-    scores.append(value + random.uniform(-HAZE, HAZE))
-
-    if White_Playing:
-      GUI.lazy_update(scores, moves[scores.index(max(scores))])
-    else: 
-      GUI.lazy_update(scores, moves[scores.index(min(scores))])
-
-
-  if White_Playing: 
-    best_move = moves[scores.index(max(scores))]
-  else:
-    best_move = moves[scores.index(min(scores))]
-
-  return best_move[0], best_move[1]
-
-
-#https://blog.devgenius.io/simple-min-max-chess-ai-in-python-2910a3602641 - From here, do referencing.
-
-#----
-
-def mini_max(board, W_Move, B_Move, White_Playing, depth):
-  moves = W_Move if White_Playing else B_Move
-  scores = []
-
-  #Root node - get utility value 
-  if depth == 0:
-    return bad_evaluate(board, W_Move, B_Move)
-
-  #Stalemate condition - also acts as essential validation
-  if White_Playing and W_Move == []:
-    return 0
-  elif not White_Playing and B_Move == []:
-    return 0 
-  
-  for i in range(len(moves)):
-    if board[moves[i][0][1]][moves[i][0][0]] != Empty_:
-      temp, W_Move, B_Move = copy.deepcopy(board), copy.deepcopy(W_Move), copy.deepcopy(B_Move)
-      #Perform the move
-      W_Move, B_Move, temp = ai_perform(W_Move, B_Move, moves[i][0], moves[i][1], temp)
-      #Then pass into minimax recursively 
-      scores.append(mini_max(temp, W_Move, B_Move, not White_Playing, depth - 1))
-
-  #If at root node, then return 'optimal move'
-  if depth == cap:
-    if White_Playing:
-      return moves[scores.index(max(scores))]
-    else:
-      return moves[scores.index(min(scores))]                                                                 
-  
-  #If a called instance, then return chosen adversial move 
-  else:
-    if White_Playing:
-      return max(scores)
-    else:
-      return min(scores)
-      
-#-------------
-
-#FROM - https://ntietz.com/blog/alpha-beta-pruning/
-
-def optimised_min_max(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
-  global cap
-
-  if insufficent_material(board) and depth != cap:
-    return 0  #As insufficent for any capture - if losing; should play towards capture
-  
-  if (len(W_Move) == 0 or len(B_Move) == 0) and depth != cap:
-    return 0 #As stalemate natrually 
-
-  if depth == 0: 
-    #normal = peice_square_optimised(board, W_Move, B_Move)
-    normal = bad_evaluate(board, W_Move, B_Move)
-    return normal 
-
-  moves, value, scores= [], [], []
-
-  if White_Playing:
-    best = MIN
-    moves, fuzz = OrderMoves(W_Move, board, True)
-    if fuzz and depth != cap:
-      B_Move = lazy_pin(board, W_Move, B_Move, False)
-      if len(B_Move) == 0 and king_attacked(W_Move, board):
-        return (500 + (100 * depth))
-    #Then; need to iterate through all children 
-    for i in range(len(moves)):
-      temp = copy.deepcopy(board)
-      #Hence; perform the move                                                                                            #TO DO; Implement instant return for kings; Check to see if ab can be shared. 
-      W_Moves, B_Moves, temp = ai_perform(W_Move, B_Move, moves[i][0], moves[i][1], temp)
-      value = optimised_min_max(temp, W_Moves, B_Moves, False, alpha, beta, depth - 1)  #Pass min-max to other player.
-      #Now; do alpha beta prunning
-      best = max(best, value)
-      if best > beta:            #<=
-        return best             #Prune the tree as limits reached.
-      alpha = max(alpha, best)
-      if depth == cap:
-        scores.append(value + random.uniform(-HAZE, HAZE))
-        GUI.lazy_update(scores, moves[scores.index(max(scores))])
-
-    if depth != cap:
-      return best #Return the played (maximised) score for the state.
-
-  elif not White_Playing:
-    best = MAX
-    moves, fuzz = OrderMoves(B_Move, board, False)
-    if fuzz and depth != cap:
-      W_Move = lazy_pin(board, W_Move, B_Move, True)
-      if len(W_Move) == 0 and king_attacked(B_Move, board):
-        return (-500 + (-100 * depth))
-    #Then iterate through all children
-    for i in range(len(moves)):
-      temp = copy.deepcopy(board)
-      #Hence; perform the move
-      W_Moves, B_Moves, temp = ai_perform(W_Move, B_Move, moves[i][0], moves[i][1], temp)
-      value = optimised_min_max(temp, W_Moves, B_Moves, True, alpha, beta, depth - 1) #Pass min-max to other player. 
-      #Now; do alpha beta prunning.
-      best = min(best, value)
-      if best < alpha:      
-        return best              #Prune the tree as limits reached - if playing optimally; nodes arent considered. 
-      beta = min(beta, best)
-      if depth == cap:
-        scores.append(value + random.uniform(-HAZE, HAZE))
-        GUI.lazy_update(scores, moves[scores.index(min(scores))])
-    
-    if depth != cap:
-      return best #Return the played (minimised) score for the state.
-     
-  if depth == cap:        
-    if not scores:
-      raise "NoScoresError"
-    #print("For white player", max(scores), "For black player", min(scores))                             #TO DO - report for console 
-    return moves[scores.index(max(scores))] if White_Playing else moves[scores.index(min(scores))]
-        
 #-----
-  
-def dive_min_max(board, W_Capture, B_Capture, White_Playing, alpha, beta, depth): 
-
-  #print(depth, len(attacking(W_Capture)), len(attacking(B_Capture)))
-
-  if (len(W_Capture) == 0 and White_Playing) or (len(B_Capture) == 0 and not White_Playing):
-    return peice_square_optimised(board, W_Capture, B_Capture) + len(W_Capture) - len(B_Capture)
-  
-  if depth == -3:
-    #print("OCEAN FLOOR", len(W_Capture), len(B_Capture))
-    return peice_square_optimised(board, W_Capture, B_Capture)
-
-  if White_Playing:
-    best = MIN
-    #Then otherwise; we should 'skip stones' - restricting to the capturing moves. 
-    for i in range(len(W_Capture)):
-      temp = copy.deepcopy(board)
-      W_Move, B_Move, temp = ai_perform(W_Capture, B_Capture, W_Capture[i][0], W_Capture[i][1], temp)    #Problem line 
-      value = dive_min_max(temp, attacking(W_Move), attacking(B_Move), False, alpha, beta, depth - 1)
-    #Though this likely is not necessary; AB prunning 
-      best = max(best, value)
-      alpha = max(alpha, best)
-      if beta <= alpha:         #<=
-        break             #As ab declares path as unreasonable. 
-
-    if W_Capture == []:
-      return peice_square_optimised(board, W_Capture, B_Capture)
-    else:
-      return best #Therefore - takes maximised diving score.
-  
-  if not White_Playing:
-    best = MAX
-    #Verifiy that all moves are captures
-    #Then otherwise, we should 'skip stones' - restricting to the capturing moves. 
-    for i in range(len(B_Capture)):
-      temp = copy.deepcopy(board)
-      W_Move, B_Move, temp = ai_perform(W_Capture, B_Capture, B_Capture[i][0], B_Capture[i][1], temp)
-      value = dive_min_max(temp, attacking(W_Move), attacking(B_Move), True, alpha, beta, depth - 1)
-    #Though this is not like necessary, AB prunning 
-      best = min(best, value)
-      beta = min(beta, best)
-      if beta <= alpha:     #<=
-        break              #As ab declares path as unreasonable 
-
-    if B_Capture == []:
-      return peice_square_optimised(board, W_Capture, B_Capture)
-    else:
-      return best #Therefore - take minimised diving score. 
-
-######################### 
-
-import statistics 
-SAMPLE_FACTOR = 1
-
-def average_friend(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
-  global cap, SAMPLE_FACTOR 
-
-  moves, value, scores = [], [], []
-
-  if insufficent_material(board) and depth != cap:
-    return [0]  #As insufficent for any capture - if losing; should play towards capture
-  
-  if (len(W_Move) == 0 or len(B_Move) == 0) and depth != cap:
-    return [0] #As stalemate natrually 
-
-  if depth == 0: 
-    normal = peice_square_optimised(board, W_Move, B_Move)
-    return normal 
-
-  if White_Playing:
-    best = MIN
-    moves, fuzz = OrderMoves(W_Move, board, True)
-    if fuzz and depth != cap:
-      B_Move = lazy_pin(board, W_Move, B_Move, False)
-      if len(B_Move) == 0 and king_attacked(W_Move, board):
-        return (100 + (25 * depth))
-    #Then; need to iterate through all children 
-    for i in range(len(moves)):
-      temp = copy.deepcopy(board)
-      #Hence; perform the move                                                                                            #TO DO; Implement instant return for kings; Check to see if ab can be shared. 
-      W_Moves, B_Moves, temp = ai_perform(W_Move, B_Move, moves[i][0], moves[i][1], temp)
-      value = average_friend(temp, W_Moves, B_Moves, False, alpha, beta, depth - 1)  #Pass min-max to other player.
-      scores.append(value + random.uniform(-HAZE, HAZE))
-      #Now; do alpha beta prunning
-      best = max(best, value)
-      alpha = max(alpha, best)
-      if beta <= alpha:            #<=
-        break                    #Prune the tree as limits reached.
-
-    if depth != cap:
-      return statistics.fmean(sorted(scores, reverse=True)[:SAMPLE_FACTOR])
-
-  elif not White_Playing:
-    best = MAX
-    moves, fuzz = OrderMoves(B_Move, board, False)
-    if fuzz and depth != cap:
-      W_Move = lazy_pin(board, W_Move, B_Move, True)
-      if len(W_Move) == 0 and king_attacked(B_Move, board):
-        return (-100 + (-25 * depth))
-    #Then iterate through all children
-    for i in range(len(moves)):
-      temp = copy.deepcopy(board)
-      #Hence; perform the move
-      W_Moves, B_Moves, temp = ai_perform(W_Move, B_Move, moves[i][0], moves[i][1], temp)
-      value = average_friend(temp, W_Moves, B_Moves, True, alpha, beta, depth - 1) #Pass min-max to other player. 
-      scores.append(value + random.uniform(-HAZE, HAZE))
-      #Now; do alpha beta prunning.
-      best = min(best, value)
-      beta = min(beta, best)
-      if beta <= alpha:      #<=
-        break                  #Prune the tree as limits reached - if playing optimally; nodes arent considered. 
-    
-    if depth != cap:
-      return statistics.fmean(sorted(scores, reverse=False)[:SAMPLE_FACTOR]) #Return the played (minimised) score for the state.
-     
-  if depth == cap:        #ORIGINAL CONDITION.
-    print(scores, "For white player", max(scores), "For black player", min(scores), "cap confirmed - global", cap)
-    return moves[scores.index(max(scores))] if White_Playing else moves[scores.index(min(scores))]
-
-#----
 
 def attacking(Move_List):
   valid = []
@@ -1134,7 +880,6 @@ def attacking(Move_List):
 import random
 
 def OrderMoves(Moves, temp, for_White):
-  color_multiplier_dict = {'W': 1, 'B': -1, 'E': 0}
 
   PIECE_VALUES = {
     'Pawn': PAWN_VALUE,
@@ -1142,7 +887,7 @@ def OrderMoves(Moves, temp, for_White):
     'Bish': BISHOP_VALUE,
     'Rook': ROOK_VALUE,
     'Quee': QUEEN_VALUE,
-    'King': 100,   
+    'King': 2,   
     'pty_': 0,
     'En_P': 0 
   }
@@ -1166,42 +911,31 @@ def OrderMoves(Moves, temp, for_White):
     '_': "Empty_"
   }
 
-  moveScore, checked = [], []
-  fuzz = False
+  moveScore = []
   for move in Moves:
     movingPeiceType = CODE_CONVERT[temp[move[0][1]][move[0][0]]]
     capturePeiceType = CODE_CONVERT[temp[move[1][1]][move[1][0]]]
-    color_multiplier = color_multiplier_dict[movingPeiceType[0]]
-    moveScoreGuess = (1 * abs(PIECE_VALUES[movingPeiceType[2:6]]))
 
-    #Move validation for AI legal moves
-    if (color_multiplier == 1) and not for_White:
-      continue 
+    #Maximum Value Victim, Minimum Value Attacker - ordering secondary heuristic
+    moveScoreGuess = (1 * PIECE_VALUES[movingPeiceType[2:6]])
+    if capturePeiceType != Empty_:             
+      moveScoreGuess += (-1 * PIECE_VALUES[movingPeiceType[2:6]]) + (7 * (PIECE_VALUES[capturePeiceType[2:6]]))
 
-    elif (color_multiplier == -1) and for_White:
-      continue
+      #Additional development score - reward 'progressing'
+      moveScoreGuess += (move[0][1] - move[1][1]) / 2 if for_White else (move[1][1] - move[0][1]) / 2
 
-    elif (color_multiplier == 0):
-      continue 
-
-    #Prioritise capturing opponents peices with the least value peices
-    if capturePeiceType != Empty_:             #Therefore, is a capture
-      moveScoreGuess += (-2 * abs(PIECE_VALUES[movingPeiceType[2:6]])) + (7 * abs(PIECE_VALUES[capturePeiceType[2:6]]))
-
-    if capturePeiceType[2:6] == "King":
-      fuzz = True
-    #Check for local pawns
+    #Should do a check that the king is not threatened
+    #if capturePeiceType[2:6] == "King":
+      #threat = True
+    #...
       
     #Otherwise;
-    checked.append(move)
     moveScore.append(moveScoreGuess)
-  #Order moves 
-  if (len(Moves) - len(checked)) > 0:
-    print(len(Moves) - len(checked))
 
-  sortedMoves = [checked for _,checked in sorted(zip(moveScore,checked))]
-  sortedMoves.reverse()
-  return sortedMoves, fuzz
+  #print(moveScore)
+
+  sortedMoves = [Moves for _,Moves in sorted(zip(moveScore,Moves), reverse=True)]
+  return sortedMoves
 
 
 ######################
@@ -1409,31 +1143,22 @@ CODE_CONVERT = {
 
 #-----------
 
-
-
 def ai_perform(W_Moves, B_Moves, move_from, move_to, temp):
-  global White_Playing, board                                                       #Promotion appears to not write back; to temp - and therefore there is no ai preference for promotions as this does not follow. 
-  holder = board
-  board = temp
+  global White_Playing, board                                                       
+  holder, board = board, temp
 
   #Need to perform the move, like normally as in perform()
-  peice = board[move_from[1]][move_from[0]]  #Collect moving peice into temp variable 
-  board[(move_from[1])][(move_from[0])] = Empty_  #Remove moving peice
-  board[(move_to[1])][(move_to[0])] = peice #Hence, write the peice into the location 
+  peice = board[move_from[1]][move_from[0]]  
+  board[(move_from[1])][(move_from[0])] = Empty_  
+  board[(move_to[1])][(move_to[0])] = peice 
 
   #Hence; we should clean out the respective move set
-  if peice in WHITE:
-    White_Playing = True
-    W_Moves = clean(move_from, W_Moves)
-    W_Moves = clean(move_to, W_Moves)
-    B_Moves = clean(move_to, B_Moves)
-  elif peice in BLACK:
-    White_Playing = False
-    B_Moves = clean(move_from, B_Moves)
-    B_Moves = clean(move_to, B_Moves)
-    W_Moves = clean(move_to, W_Moves)
-  
-  #Pawn promotions are important for the end_game 
+  W_Moves = clean(move_from, W_Moves)
+  W_Moves = clean(move_to, W_Moves)
+  B_Moves = clean(move_to, B_Moves)
+  B_Moves = clean(move_from, B_Moves)
+
+  #Need to check for en_passant in pawn moves
   if temp[move_from[1]][move_from[0]] in PAWN:
     en_location = passant_check(move_from, move_to, en_location)
     #Likewise, if pawn check for promotion
@@ -1444,13 +1169,10 @@ def ai_perform(W_Moves, B_Moves, move_from, move_to, temp):
   W_Moves, B_Moves = explode(map, W_Moves, B_Moves)
 
   #Return to the original values of the ai
-  temp = board
-  board = holder
-
+  temp, board = board, holder
   return W_Moves, B_Moves, temp
 
 #-----
-
 
 def restless(has_captured, pawn_move):
   global restlessness
@@ -1466,34 +1188,27 @@ def restless(has_captured, pawn_move):
 
 def bad_evaluate(temp, W_Moves, B_Moves):
 
-  scoring = {B_King: -100, 
-     B_Quee: -9,
-     B_Rook: -5,
-     B_Bish: -3,
-     B_Knig: -3,
-     B_Pawn: -1,
-     W_King: 100, 
-     W_Quee: 9,
-     W_Rook: 5,
-     W_Bish: 3, 
-     W_Knig: 3,
-     W_Pawn: 1,
-     W_En_Passant_Token: -0.2, 
-     B_En_Passant_Token: 0.2,
-     Empty_: 0}
+  score = (len(W_Moves) - len(B_Moves)) / 10
 
-  score = ((len(W_Moves) * 0.02) - (len(B_Moves) * 0.02)) #Some movement utility bonus 
+  PEICE_VALUES = {
+    'Pawn': 1,
+    'Knig': 3,
+    'Bish': 3,
+    'Rook': 5,
+    'Quee': 9,
+    'King': 100,
+  }
 
-  for i in range(8):
-    for j in range(8):
-      score += scoring[temp[i][j]]
+  score = 0
+  for y, row in enumerate(board):
+    for x, peice_code in enumerate(row):
+      peice = CODE_CONVERT[peice_code]
+      color_multipler = color_multiplier_dict[peice[0]]
+      #Then add to score if peice
+      if peice[2:6] in PEICE_VALUES:
+        score += color_multipler * PEICE_VALUES[peice[2:6]]
 
-      if temp[i][j] in BLACK:
-        score += (-0.05 * i)
-      if temp[i][j] in WHITE:
-        score += (0.05 * (8-i))
-
-  return score
+  return score 
   
 
 ##############################
@@ -1505,36 +1220,6 @@ def squareUnderAttack(location, attacking):
     if (y_location, x_location) == location:
       return True
   return False
-
-#############################################################################################   #TO DO BOOK ENGINE FOR V2
-
-def book_opening():
-
-  #Ruy('e4/e5/Nf3/Nc6/Bb5')                               #Limited inital set of oppenings for good riddance. 
-  #French('e4/e6/d4/d5')
-  #Slav('d4/d5/c4/c6')
-  #Queen_Indian('d4/f6/c4/e6/f3/b6')
-  #King_Indian('f3/d5/g3/g6/g2/g7')
-
-  raise NotImplementedError
-
-
-def book_log(move_to, log):
-  #Add the cordinates onto log
-
-  files = {
-    1: 'a',
-    2: 'b',
-    3: 'c',
-    4: 'd',
-    5: 'e',
-    6: 'f',
-    7: 'g',
-    8: 'h',
-  }
-
-  #TO DO - MAKE MOVE LOGGING SYSTEM FOR OPENING ENGINE
-
 
 #=============================
 
@@ -1611,7 +1296,7 @@ def gameplay_loop(click1, click2):
 
       move_from, move_to = click1, click2
     
-      #Get inputs from users - using string literals to produce visual spacing
+      #Get the input - determine if current player is human or AI
       if player[(Time_Stamp - 1) % 2] == 'Human':
 
         move_from, move_to = click1, click2
@@ -1663,6 +1348,7 @@ def gameplay_loop(click1, click2):
       map = load(King_location[0][1], King_location[0][0], King_location[0], map)
       White_moves, Black_moves = explode(map, White_moves, Black_moves)
 
+      print(np.matrix(board))
       GUI.draw_board()
 
       print("----- PERFORMANCE CHECKS ------")            
@@ -1678,8 +1364,8 @@ def gameplay_loop(click1, click2):
         White_moves, Black_moves = refresh_moves(White_moves, Black_moves, board)
         Black_Threatened = new_Black_Threatened
 
-      White_moves, none = OrderMoves(White_moves, board, True)
-      Black_moves, none = OrderMoves(Black_moves, board, False)
+      White_moves = OrderMoves(White_moves, board, True)
+      Black_moves = OrderMoves(Black_moves, board, False)
 
       #Checkmate engine here - handles pinned moves; stalemate and checkmate
       
@@ -1703,6 +1389,9 @@ def gameplay_loop(click1, click2):
           return 0 
         #elif White_Playing:                                                                                #TO DO - CHANGE STALEMATE CHECK TO BE FIRST. 
           #GUI.stalemate()
+        
+      import algorithms.Position_Book
+      print(algorithms.Position_Book.create_instance(current_hash, repeated))
       
       White_Playing, Moves_Tuple = turn(Time_Stamp)
       

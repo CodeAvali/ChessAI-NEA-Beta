@@ -91,14 +91,10 @@ def callback(e):
 
 def players():
     global locked
-    #print("PLAYERS RUNNING")
     global White_Playing, board
     Time_Stamp = main.Time_Stamp
     player = main.player
-    #print("-------------- players called ---------------------------", Time_Stamp, player)
     if main.player[pointer] != 'Human' and not locked:
-        #Perform ai actions
-        #print("------------------ CALLED AI -----------------------------")
         locked = True
         reset_command()
         new_thread = threading.Thread(target=main.gameplay_loop((-1, -1), (-1, -1)), name="alt").start()
@@ -172,20 +168,19 @@ def update_utility(utility_scores, current_processed):
     draw_board()
 
 def on_click(event):
-    print("CLICKED ACTION")
     locked = True
     global command, WHITE, BLACK, board, White_Playing
     board = main.board
     #Get the cordinates for the command 
     x = event.x - (0.5 * SQUARE_SIZE)
     y = event.y - (0.5 * SQUARE_SIZE)
-    #print("Event called at %d, %d" %(x, y))
+    #Then round to exact; 
     X_location = round((x / SQUARE_SIZE))
     Y_location = round(y / SQUARE_SIZE)
+    print("CORDINATES", X_location, Y_location)
     #From there, check that this was not an 'action' click
     if command[Y_location][X_location] == "MOVE" or command[Y_location][X_location] == "ATTACK":
         #Perform the player's move; 
-        print("ALARM - ACTIONING")
         move_to = (X_location, Y_location)                                                   #TO DO
         for i in range(0,8):
             for j in range(0,8):
@@ -198,7 +193,6 @@ def on_click(event):
             player_testing = False
         #print("VALID check, ", player_testing, main.White_Playing)
         if bool(player_testing) == bool_pointer(pointer):
-            print("TEST !! PERFORMING GAMEPLAY_LOOP")
             locked = True
             new_thread = threading.Thread(target=main.gameplay_loop(move_from, move_to), name="alt")                                                         #main.gameplay_loop(move_from, move_to)
             command = reset_command()
@@ -227,25 +221,20 @@ def highlight(X_location, Y_location):
     print(len(White_Moves), len(Black_Moves))
     #For the White Player
     if board[Y_location][X_location] in WHITE:
-        print("WHITE COMMAND")
         White_Moves = main.White_Moves
         for i in range(len(White_Moves)):
             if command[White_Moves[i][0][1]][White_Moves[i][0][0]] == "SELECT": #That is the clicked peice; 
                 command[White_Moves[i][1][1]][White_Moves[i][1][0]] = "MOVE"
                 if board[White_Moves[i][1][1]][White_Moves[i][1][0]] in BLACK:
-                    print("SUCCESS")
                     command[White_Moves[i][1][1]][White_Moves[i][1][0]] = "ATTACK"
-                    print(command)
 
     #For the Black Player
     if board[Y_location][X_location] in BLACK:
         Black_Moves = main.Black_Moves
-        print("BLACK COMMAND")
         for i in range(len(Black_Moves)):
             if command[Black_Moves[i][0][1]][Black_Moves[i][0][0]] == "SELECT": #That is the clicked peice; 
                 command[Black_Moves[i][1][1]][Black_Moves[i][1][0]] = "MOVE"
                 if board[Black_Moves[i][1][1]][Black_Moves[i][1][0]] in WHITE:
-                    print("FAIL")
                     command[Black_Moves[i][1][1]][Black_Moves[i][1][0]] = "ATTACK"
                                              
     #for draw_board - command is used as a global var - and so call draw_board. 
@@ -290,7 +279,7 @@ def draw_board():
     colors, sprites, inc, board = ["white", "grey"], [], -1, main.board
     for row in range(-1, BOARD_SIZE):
         for col in range(-1, BOARD_SIZE):
-            #rint(row, col)
+            #print(row, col)
             x1 = col * SQUARE_SIZE
             y1 = row * SQUARE_SIZE
             x2 = x1 * SQUARE_SIZE
@@ -300,7 +289,7 @@ def draw_board():
                 x2 = SQUARE_SIZE
             if y1 == 0:
                 y2 = SQUARE_SIZE
-            #Determine board colours - If forced by a peice selection 
+            #Determine board colours - If forced by command 
             if command[row][col] == "SELECT":
                 color = 'blue'
             elif command[row][col] == "MOVE":
@@ -320,10 +309,11 @@ def draw_board():
             else:  #Normal case - display grid structure
                 canvas.create_rectangle(x1, y1, x2, y2, fill=color)
             #Then regardless - pass to next player
-    locked = False
+    #locked = False
     window.update_idletasks()
 
     #Hence - or otherwise, get the next player to play - which should be automatic if AI
+    #colors = ["white","grey"]
 
 
 def get_contents():  
@@ -430,6 +420,12 @@ def insufficent():
     finished = True
     timer()
 
+def threefold_repetition():
+    global message, finished
+    message = 'DRAW: Three-fold repetition'
+    display.config(bg = 'grey45', fg= 'White')
+    finished = True
+
 def default():
     global message, finished
     message = ''
@@ -461,11 +457,6 @@ def timer():
         main.reset()
         window.update()
         draw_board()
-        #window.after(50000)
-        #window.destroy()
-        #counter.join()
-        #White_Moves = Moves_Inital.White_moves_original
-        #Black_Moves = Moves_Inital.Black_moves_original
         window.after(5000)
         finished = False
         players()
@@ -556,15 +547,16 @@ def console():
     black_option.grid(row=2, column=0)
     black_option.insert(END, 'Black Player')
 
-    #modify_option = Checkbutton(console_window, text="Modifying White file").grid(row = 3, column = 0)
-    
+    #Creating label
     label_text = StringVar()
-    label = Label(console_window, textvariable=label_text, width=52, anchor=W, background=None) #TO DO - CHANGE COLOUR CORRESPONDINGLY https://stackoverflow.com/questions/42942534/how-to-change-the-color-of-a-tkinter-label-programmatically 
+    label = Label(console_window, textvariable=label_text, width=52, anchor=W, background=None) 
     label_text.set("Off")
 
+    #Checkbutton for file change
     check= Checkbutton(console_window,  text="Change current File", variable=label_text,
                    onvalue="Modifying Black file...", offvalue="Modifying White file...", command=change_current_file)
 
+    #As using assignments, have to later push to position method
     label.grid(row=4, column = 0, rowspan=1)
     check.grid(row = 3, column = 0)
 
@@ -581,7 +573,7 @@ def console():
     Label(console_window, text="Knight_Value").grid(row=12, sticky=W)
     Label(console_window, text="Pawn_Value").grid(row=13, sticky=W)
 
-    #Alternative
+    #
 
     entry_info = [
         {"widget": Entry(console_window, width=30), "line": 1},
@@ -656,13 +648,13 @@ def console():
     import webbrowser
 
     def open_git():
-        url = 'https://www.youtube.com/watch?v=xvFZjo5PgG0'
+        url = 'https://github.com/CodeAvali/ChessAI-NEA-Beta/blob/main/README.md?plain=1'
         webbrowser.open_new(url)
 
 
     #Ownership
     copymark = Label(console_window, width = 45, text="Made by CodeAvali -> To Github", font=regular_font, foreground="Blue")
-    copymark.grid(row = 25, sticky='W', pady=175)                                       #TO DO - LINK: https://www.tutorialspoint.com/how-to-create-hyperlink-in-a-tkinter-text-widget#:~:text=Tkinter%20Text%20widgets%20are%20generally,using%20HyperLinkManager%20snippet%20in%20Python.
+    copymark.grid(row = 25, sticky='W', pady=175)                                       
     make_hyperlink(copymark, open_git)
 
 #----
@@ -670,8 +662,11 @@ def console():
 def get_file_val(num):
     global current_file
 
+    #Open file and read lines
     current = open(current_file)
     content = current.readlines()
+
+    #Return respective line
     return str(content[num-1]).strip()
 
 #----
@@ -754,7 +749,6 @@ def players():
     global White_Playing, board
     Time_Stamp = main.Time_Stamp
     player = main.player
-    #print("-------------- players called ---------------------------", Time_Stamp, player)
     if main.player[pointer] != 'Human':
         #Perform ai actions
         print("------------------ CALLED AI -----------------------------")

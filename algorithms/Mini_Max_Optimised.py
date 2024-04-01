@@ -1,8 +1,6 @@
-import main
-import copy 
-import random
+import main, copy, random
 
-# An optimised version of Mini_Max which can comfortably achieve loseless depth 3 quickly and even depth 4 at an acceptable pace. 
+# Mini-Max-Optimised: An optimised version of Mini_Max which can comfortably achieve loseless depth 3 quickly and even depth 4 at an acceptable pace. 
 
 # Optimisations include:
 #1. Checkmate and pinned moves inclusion - will play aggressive towards and identifying checkmate.

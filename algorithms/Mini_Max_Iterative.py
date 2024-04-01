@@ -1,9 +1,7 @@
-import main
-import copy 
-import random 
+import main, copy, random
 
-# Mini_Max_CodeName - 
-#
+# Mini_Max_Iterative - An prunning heavy lossy version of minimax
+# Achieves 4 depth play comfortably - but tends to lose information and therefore often loses against loseless algorithms
 
 def call(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
 

@@ -59,6 +59,7 @@ image_files = ["Peices/W_King.png","Peices/B_King.png","Peices/W_Quee.png","Peic
 sprites = []
 board = main.board
 locked = False
+game_ongoing = False
 
 #Inital
 window = Tk()  
@@ -171,6 +172,11 @@ def on_click(event):
     locked = True
     global command, WHITE, BLACK, board, White_Playing
     board = main.board
+
+    #Appropriate widget check 
+    if str(event.widget) != '.!canvas':
+        return -1
+
     #Get the cordinates for the command 
     x = event.x - (0.5 * SQUARE_SIZE)
     y = event.y - (0.5 * SQUARE_SIZE)
@@ -430,7 +436,7 @@ def default():
     global message, finished
     message = ''
     display.config(bg = 'PaleTurquoise1', fg= 'Black')
-    finished = False
+    finished = True
 
 
     
@@ -457,9 +463,9 @@ def timer():
         main.reset()
         window.update()
         draw_board()
-        window.after(5000)
-        finished = False
-        players()
+        #window.after(5000)   #Force starts a repeated game 
+        finished = True
+        #players()
     else:
         players()
 
@@ -519,11 +525,11 @@ def form(time):
 def console():
     #TO DO - FOR QUALITY - POSITION THE TOP LEVEL WINDOW RELATIVE TO...
     #https://www.tutorialspoint.com/python-tkinter-how-to-position-a-toplevel-widget-relative-to-the-root-window
+    
 
 
 
-
-    global console_window, entry_info, current_file, start_option, white_option, black_option
+    global console_window, entry_info, current_file, start_option, white_option, black_option, check, label_text
     from tkinter import font 
     current_file = 'Ai_file1.txt'
     underline_font = font.Font(underline=TRUE, family="Helvetica",size=10)
@@ -550,7 +556,7 @@ def console():
     #Creating label
     label_text = StringVar()
     label = Label(console_window, textvariable=label_text, width=52, anchor=W, background=None) 
-    label_text.set("Off")
+    label_text.set("Modifying White file...")
 
     #Checkbutton for file change
     check= Checkbutton(console_window,  text="Change current File", variable=label_text,
@@ -573,10 +579,12 @@ def console():
     Label(console_window, text="Knight_Value").grid(row=12, sticky=W)
     Label(console_window, text="Pawn_Value").grid(row=13, sticky=W)
 
+    #Combobox(console_window, width=30, state = "readonly", values=["Human","Random_Pick"]).grid(row=5, sticky=E)
+
     #
 
     entry_info = [
-        {"widget": Entry(console_window, width=30), "line": 1},
+        {"widget": Combobox(console_window, width=30, state = "readonly", values=["Human","Random_Pick","Order_Pick","Mini_Max_Original","Mini_Max_Optimised","Mini_Max_Iterative","AI_Created_1","AI_Created_2"], command=get_combo_index()), "line": 1},
         {"widget": Entry(console_window, width=30), "line": 2},
         {"widget": Entry(console_window, width=30), "line": 3},
         {"widget": Entry(console_window, width=30), "line": 4},
@@ -590,6 +598,12 @@ def console():
     row_num = 5
     #Pack the entry widgets
     for entry in entry_info:
+        if row_num == 5:
+            #Combo-box widget
+            print("ROW CALLED")
+            entry["widget"].bind("<<ComboboxSelected>>", write_file_val(entry["widget"], 1))
+            entry["widget"].current(0)
+        
         entry["widget"].grid(row=row_num, sticky=E)
         entry["widget"].delete(0, END)
         entry["widget"].insert(END, get_file_val(row_num-4))
@@ -658,6 +672,10 @@ def console():
     make_hyperlink(copymark, open_git)
 
 #----
+    
+def get_combo_index():
+    print("HELLOOO - COMBO COMMAND")
+
 
 def get_file_val(num):
     global current_file
@@ -676,6 +694,7 @@ def write_file_val(widget, line):
 
     #Get the written contents from the entry box 
     new = widget.get()
+    print("WRITE CALLED")
     current = open(current_file)
     content = current.readlines()
     content[line-1] = str(new) + '\n'
@@ -716,13 +735,91 @@ def change_current_file():
 def update_personality_tag(White_Playing, Personality, wins):
     var = StringVar()
     if White_Playing:
-        var = Personality + "   [Ai_file1] " #+ str(wins)
+        var = Personality + "   [" + file_type_strip(main.current_file) + "]"
         white_option.delete("1.0","end")
         white_option.insert(END, var)
     else:
-        var = Personality + "   [Ai_file2] " #+ str(wins)
+        var = Personality + "   [" + file_type_strip(main.current_file) + "]"
         black_option.delete("1.0","end")
         black_option.insert(END, var)
+
+###
+        
+def repeat_game():
+    #Code for repeated games - according to repeated_option widget
+    raise NotImplementedError
+
+
+
+
+
+def file_type_strip(string):
+    return string.replace('.txt','')
+
+#---
+
+def file_validated(current_file):
+
+    # Required file validation 
+    player = main.player
+    print(player)
+    if current_file in main.player:
+        return True
+    
+    current = open(current_file)
+    content = current.readlines()
+
+    failed = []
+
+    for line in range(1, 9):
+        try:
+            value = int(content[line])
+        except:  
+            failed.append(line + 1)
+    print("FINALLY", failed)
+    if failed:
+        console_error(failed)
+        #Prevent the AI from being enabled
+        return False 
+    else:
+        #Allow the AI to be enabled 
+        return True
+
+
+
+def console_error(failed):
+    #Need to highlight text as red for error; 
+
+    print("failed", failed)
+
+    increment = 0 
+
+    for entry in entry_info:
+        increment += 1
+        print("issue", increment)
+        if increment in failed:
+            print("incrementing entry_info")
+            entry["widget"].delete(0, END)
+            entry["widget"].insert(END, "IntError")
+
+        
+
+
+
+
+
+
+
+
+
+    return NotImplementedError
+
+
+
+
+
+
+
     
 def allow_highlighting():
     global UPDATE_OPT
@@ -737,11 +834,52 @@ def allow_utility():
     print("YAY")
     console_window.update()
 
+#----
+
 def begin():
-    global counter, command 
-    command = reset_command()
-    start_option.config(text = 'AI Enabled: Please do not change any values')
-    counter = threading.Thread(target=count_down(), name="counter").start()
+    global counter, command, check, game_ongoing, finished
+
+    if game_ongoing:
+        #Reset the game 
+        print("GAME RESETING")
+        finished = True
+        game_ongoing = False
+    else:
+
+      white_valid = file_validated(main.player[0])
+
+      if not white_valid:
+        if current_file == 'Ai_file2.txt':
+          check.invoke()
+          print("ERROR: WHITE NOT VALID")
+      else: 
+
+        black_valid = file_validated(main.player[1])
+
+        if white_valid and not black_valid:
+            print("ERROR: BLACK NOT VALID", label_text)
+            #Need to display black file 
+            if current_file == 'Ai_file1.txt':
+              check.invoke()
+
+        else:
+          #Game can start
+          game_ongoing = True
+          finished = False
+          command = reset_command()
+
+          #Should check that player is updated immediately
+          main.reset_load(True)
+          main.reset_load(False)
+          
+
+
+
+
+          start_option.config(text = 'AI Enabled: Press again to reset')
+          counter = threading.Thread(target=count_down(), name="counter").start()
+          #counter = Process(target=count_down(), name="counter").start()
+
 
 console()
 
@@ -751,7 +889,10 @@ def players():
     player = main.player
     if main.player[pointer] != 'Human':
         #Perform ai actions
+        
+        #main.after(10, threading.Thread(target=main.gameplay_loop((-1, -1), (-1, -1)), name="alt").start() )
         print("------------------ CALLED AI -----------------------------")
+        #new_thread = Process(target=main.gameplay_loop((-1, -1), (-1, -1)), name="alt").start()
         new_thread = threading.Thread(target=main.gameplay_loop((-1, -1), (-1, -1)), name="alt").start()
 
 #Start the game

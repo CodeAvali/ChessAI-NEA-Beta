@@ -1,5 +1,14 @@
 import main
 
+current_hash = []
+repeated = []
+
+def hash_reset():
+    global current_hash, repeated
+
+    current_hash = []
+    repeated = []
+
 def create_hash(board):
     count = 0
     #For our hashing function - I am going to consider a numeric integer which will be easy to lookup
@@ -25,7 +34,7 @@ def linear_lookup(current_hash, find):
         
 
 
-def create_instance(current_hash, repeated):
+def create_instance():
 
     #Need to create new hash for current game_state
 

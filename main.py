@@ -663,6 +663,10 @@ def reset():
   castling_permisions = [True, True]
   #White_moves, Black_moves = refresh_moves(White_moves, Black_moves, board)
   #White_Moves, Black_Moves = White_moves, Black_moves
+
+  import algorithms.Position_Book
+
+  algorithms.Position_Book.hash_reset()
   
   print("AFTER RESET", len(White_moves), len(White_Moves), len(Black_moves), len(Black_Moves))
   
@@ -679,9 +683,13 @@ def reset():
     GUI.pointer = 0
 
   #store_it(White_Moves, Black_Moves)
-  time.sleep(5)
-  GUI.default()
+  #time.sleep(5)
+  #GUI.default()
   print(Time_Stamp)
+
+  #Check if there is a value in Repeat_Option
+  GUI.repeat_game()
+
 
 #---
 
@@ -738,7 +746,7 @@ en_location = [[-1, -1], [-1, -1]]    #first index array is used for White; 2nd 
 en_flag = -1
 King_location = [[7, 4], [0, 4]]
 Checked = False
-player = ['','']     #CHANGE TO BE EMPTY STRING
+player = ['Ai_file1.txt','Ai_file2.txt']     #CHANGE TO BE EMPTY STRING
 utility = 0 
 restlessness = 0 
 
@@ -748,8 +756,7 @@ total_nodes = 0
 MG_SCALE = 1
 EG_SCALE = 0
 
-current_hash = []
-repeated = []
+
 
 
 #----- AI TESTS
@@ -800,11 +807,13 @@ def ai_call():
 
 
 def ai_load(for_white):
-  global QUEEN_VALUE, ROOK_VALUE, BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, PERSONALITY, DEPTH, RESTLESSNESS_FACTOR, END_GAME_TRANSITION, WINS
+  global QUEEN_VALUE, ROOK_VALUE, BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, PERSONALITY, DEPTH, RESTLESSNESS_FACTOR, END_GAME_TRANSITION, WINS, current_file
 
   if for_white:
+    current_file = 'Ai_file1.txt'
     file = open('Ai_file1.txt', 'r') 
   else:
+    current_file = 'Ai_file2.txt'
     file = open('Ai_file2.txt', 'r')
 
   PERSONALITY = str(file.readline().strip())
@@ -829,10 +838,10 @@ def ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp):
 
     start = time.time()
 
-    #NEED to update player tag 
+    # Update the player tag is there is a change between current personality and player
     if current != player[0 if White_Playing else 1]:
       player[0 if White_Playing else 1] = str(current)
-      print("UPDATING", WINS)
+      print("UPDATING ###############################", WINS)
       GUI.update_personality_tag(White_Playing, player[0 if White_Playing else 1], WINS)
 
     #Hence, call the respective ai function
@@ -866,6 +875,26 @@ def ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp):
     return result 
 
 #-------
+
+def reset_load(White_Playing):
+  global current_file
+
+  #Need to find and open respective file
+  if White_Playing:
+    current_file = 'Ai_file1.txt'
+    file = open('Ai_file1.txt', 'r') 
+  else:
+    current_file = 'Ai_file2.txt'
+    file = open('Ai_file2.txt', 'r')
+
+  #Get personality value
+  current = str(file.readline().strip())
+
+  #Need to check if current personality meets player
+  if current != player[0 if White_Playing else 1]:
+    player[0 if White_Playing else 1] = str(current)
+    GUI.update_personality_tag(White_Playing, player[0 if White_Playing else 1], 0)
+
 
 #-----
 
@@ -995,7 +1024,7 @@ def peice_square_optimised(board, W_Move, B_Move):
     'Bish': BISHOP_VALUE,
     'Rook': ROOK_VALUE,
     'Quee': QUEEN_VALUE,
-    'King': 100,               #Should create some scale based on depth
+    'King': 100,              
 }
   
   PIECE_SQUARE_VALUES = { 
@@ -1117,7 +1146,7 @@ def peice_square_optimised(board, W_Move, B_Move):
 
       if peice[2:6] in PIECE_SQUARE_VALUES:
         score += ((PIECE_SQUARE_VALUES[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (MG_SCALE / 10000)) + ((PEICE_SQUARE_VALUES_EG[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (EG_SCALE / 10000)) * color_multiplier * PIECE_VALUES[peice[2:6]]
-                                                                                                                                      
+
   return score 
 
 #----
@@ -1180,6 +1209,8 @@ def restless(has_captured, pawn_move):
   restlessness += 1
   #Then just need to check that a move is not a capture 
   if pawn_move:
+    import algorithms.Position_Book
+    algorithms.Position_Book.hash_reset()
     restlessness = 0 
   elif restlessness >= 50: #50 move rule
     GUI.fifty_moves()
@@ -1261,7 +1292,6 @@ def refresh_moves(White_moves, Black_moves, board):
 
 # (5) --------- Main gameplay loop
 
-Playing = True
 White_Playing = True 
 #print(np.matrix(board))
 Time_Stamp = 0
@@ -1276,7 +1306,7 @@ def gameplay_loop(click1, click2):
   selected = (click1, click2)
 
   Playing = True
-  if Playing:
+  if not GUI.finished:
     #Pass the turn to the next player                     #Temp fix need to fix bug
 
     White_Playing, Moves_Tuple = turn(Time_Stamp)
@@ -1391,7 +1421,8 @@ def gameplay_loop(click1, click2):
           #GUI.stalemate()
         
       import algorithms.Position_Book
-      print(algorithms.Position_Book.create_instance(current_hash, repeated))
+      print(algorithms.Position_Book.create_instance())
+
       
       White_Playing, Moves_Tuple = turn(Time_Stamp)
       

@@ -1,7 +1,7 @@
 import main
 import copy
 
-# Basic implementation of classical Mini_Max; considers adversial gameplay and makes moves
+# Mini-Max: Basic implementation of classical Mini_Max; considers adversial gameplay and makes moves
 # However, lack of any efficency leads to significant slowdown past 2 depth. 
 
 def call(board, W_Move, B_Move, White_Playing, depth):

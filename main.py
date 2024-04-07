@@ -633,6 +633,9 @@ def castling(for_white, board):
 def reset():
   global board, Moves_Tuple, Blocked_Tuple, Protected_Tuple, Attack_Tuple, White_Moves, Black_Moves, en_location, en_flag, King_location, Checked, player, utility, restlessness, castling_permisions, Time_Stamp, White_Playing, White_moves, Black_moves
 
+  print("RESET CALLED")
+  time.sleep(1)
+  print("RESETTTTTTTTT --------------------------------------")
   board = [[B_Rook, B_Knig, B_Bish, B_Quee, B_King, B_Bish, B_Knig, B_Rook],
         [B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn],
         [Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_],
@@ -682,12 +685,15 @@ def reset():
     Time_Stamp = 0
     GUI.pointer = 0
 
+  GUI.game_ongoing = False
+
   #store_it(White_Moves, Black_Moves)
-  #time.sleep(5)
+  #GUI.reseting()
+  #time.sleep(2)
   #GUI.default()
   print(Time_Stamp)
 
-  #Check if there is a value in Repeat_Option
+  #Check if there is a value in Repeat_Option - repeat game if necessary
   GUI.repeat_game()
 
 
@@ -810,21 +816,21 @@ def ai_load(for_white):
   global QUEEN_VALUE, ROOK_VALUE, BISHOP_VALUE, KNIGHT_VALUE, PAWN_VALUE, PERSONALITY, DEPTH, RESTLESSNESS_FACTOR, END_GAME_TRANSITION, WINS, current_file
 
   if for_white:
-    current_file = 'Ai_file1.txt'
-    file = open('Ai_file1.txt', 'r') 
+    current_file = GUI.file[0]
+    file = open(GUI.file[0], 'r') 
   else:
-    current_file = 'Ai_file2.txt'
-    file = open('Ai_file2.txt', 'r')
+    current_file = GUI.file[1]
+    file = open(GUI.file[1], 'r')
 
   PERSONALITY = str(file.readline().strip())
-  DEPTH = int(file.readline().strip())
+  DEPTH = round(float(file.readline().strip()))
   END_GAME_TRANSITION = float(file.readline().strip())
-  RESTLESSNESS_FACTOR = int(file.readline().strip())
-  QUEEN_VALUE = int(file.readline().strip())
-  ROOK_VALUE = int(file.readline().strip())
-  BISHOP_VALUE = int(file.readline().strip())
-  KNIGHT_VALUE = int(file.readline().strip())
-  PAWN_VALUE = int(file.readline().strip())
+  RESTLESSNESS_FACTOR = round(float(file.readline().strip()))
+  QUEEN_VALUE = float(file.readline().strip())
+  ROOK_VALUE = float(file.readline().strip())
+  BISHOP_VALUE = float(file.readline().strip())
+  KNIGHT_VALUE = float(file.readline().strip())
+  PAWN_VALUE = float(file.readline().strip())
   WINS = str(file.readline().strip())
 
   file.close()
@@ -835,6 +841,8 @@ def ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp):
 
     #Get personality
     current = PERSONALITY
+
+    print(PERSONALITY, "-------------------------")
 
     start = time.time()
 
@@ -881,11 +889,11 @@ def reset_load(White_Playing):
 
   #Need to find and open respective file
   if White_Playing:
-    current_file = 'Ai_file1.txt'
-    file = open('Ai_file1.txt', 'r') 
+    current_file = GUI.file[0]
+    file = open(current_file, 'r') 
   else:
-    current_file = 'Ai_file2.txt'
-    file = open('Ai_file2.txt', 'r')
+    current_file = GUI.file[1]
+    file = open(current_file, 'r')
 
   #Get personality value
   current = str(file.readline().strip())
@@ -1406,7 +1414,7 @@ def gameplay_loop(click1, click2):
       White_valid, Black_valid = lazy_pin(board, White_moves, Black_moves, True), lazy_pin(board, White_moves, Black_moves, False)
 
       if len(White_valid) == 0:
-        if king_attacked(Black_moves, board): 
+        if king_attacked(Black_moves, board):
           GUI.checked(True)
           return 0
         #elif not White_Playing:

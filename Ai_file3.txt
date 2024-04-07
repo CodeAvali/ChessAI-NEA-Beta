@@ -1,4 +1,4 @@
-Human
+Mini_Max_Aware
 4
 2
 10
@@ -6,5 +6,5 @@ Human
 5
 3
 3
-1
+2
 531

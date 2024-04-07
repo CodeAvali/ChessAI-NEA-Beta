@@ -10,7 +10,7 @@ import statistics
 import threading 
 import os
 from multiprocessing import *
-#import time 
+import time as delay
 
 
 #Constants 
@@ -61,9 +61,13 @@ board = main.board
 locked = False
 game_ongoing = False
 
+global UTILITY_OPT
+UTILITY_OPT = False
+
 #Inital
 window = Tk()  
 window.geometry('650x640')
+window.iconbitmap("Favicon/W_Pawn.ico")
 
 display = Text(window, background='PaleTurquoise1', height=2, width=75, state=DISABLED)
 
@@ -75,8 +79,8 @@ utility = Progressbar(orient=VERTICAL, length=560, maximum=200, style='yellow.Ve
 utility.config(style='yellow.Vertical.TProgressbar')
 utility.place(x=620, y=20, width=15)
 
-TROUGH_COLOR = 'white'
-BAR_COLOR = 'black'
+#TROUGH_COLOR = 'white'
+#BAR_COLOR = 'black'
 
 #Need to learn how to change colour of the progress bar
 #https://www.youtube.com/watch?v=N4v9Z0e3TxA
@@ -115,58 +119,106 @@ def reset_command():
 global last_processed
 last_processed = None 
 
-global UPDATE_OPT
-UPDATE_OPT = False
+global THOUGHT_OPT
+THOUGHT_OPT = False
 
 def lazy_update(utility_scores, current_processed):
-    global UPDATE_OPT
-    if UPDATE_OPT:
-        update_utility(utility_scores, current_processed)
+    global performed 
+    global THOUGHT_OPT, UTILITY_OPT
+    performed = len(utility_scores)
+    if not finished:
+        #x = threading.Thread(target=update_window, args = ())
+        #x.start()
+        update_window()
+    if THOUGHT_OPT:
+        thought_highlighting(current_processed)
+    if UTILITY_OPT:
+        simple_update_utility(utility_scores)
+
+
+
+def update_window():
+    global finished, pointer, White_Moves, Black_Moves
+
+    display.config(state='normal')
+    if not finished:
+      warning()
+    display.tag_configure("tag_name", justify='center')
+    display.tag_configure("timing", justify='left')
+    display.delete("1.0",END)
+    display.insert(END, display_message())
+    display.insert(END, form(time))
+    display.tag_add("tag_name", "1.0", "end")
+    display.tag_add("timing", "1.0", "1.0") 
+    display.update()
+    display.config(state='disabled')
+    window.update_idletasks()
+    window.update()
+
+
+def message_window():
+
+    display.config(state='normal')
+
+    display.tag_configure("tag_name", justify='center')
+    display.tag_configure("timing", justify='left')
+    display.delete("1.0",END)
+    display.insert(END, message)
+    display.insert(END, form(time))
+    display.update()
+
+
+
+    return NotImplementedError 
+    
+
+
+        
 
 
 def simple_update_utility(utility_scores):
-    global current_utility
-    ENLARGMENT_FACTOR = 1 + (0.05 * main.Time_Stamp)
+    ENLARGMENT_FACTOR = 10 + (0.05 * main.Time_Stamp)
     utility_value = (statistics.fmean(utility_scores) * ENLARGMENT_FACTOR) + 100
     #Need to ensure it lies within the range;
     if utility_value > 200:
-        utility_value = 199.9999
+        utility_value = 200
     elif utility_value < 0:
-        utility_value = 0.0001
+        utility_value = 0
     utility.stop()
     utility.step(utility_value)
 
+    window.update_idletasks()
 
-def update_utility(utility_scores, current_processed):
-    global current_utility, performed, last_processed, command
+global flag
+flag = False
 
-    #print(utility_scores, current_processed)
+def thought_highlighting(current_processed):
+    global last_processed, command, flag
 
-
-    ENLARGMENT_FACTOR = 1
-    utility_value = (statistics.fmean(utility_scores) * ENLARGMENT_FACTOR) + 100
-    #Need to ensure it lies within the range;
-    if utility_value > 200:
-        utility_value = 199.9999
-    elif utility_value < 0:
-        utility_value = 0.0001
-    performed = len(utility_scores)
-
-    #check for first highlight
+    #Check for first highlight case 
     if last_processed == None:
         last_processed = current_processed
+    
+    #Efficnecy improvements - end if not necessary
+    elif current_processed == last_processed and flag:
+        return -1 
 
-    utility.stop()
-    utility.step(utility_value)
+    flag = False
+
+    #Otherwise; perform highlighting for AI thought 
+    command = reset_command()
     if current_processed != None:
         command[last_processed[1][1]][last_processed[1][0]] = "PROCESSED"
         command[last_processed[0][1]][last_processed[0][0]] = ''
         if command[current_processed[1][1]][current_processed[1][0]] == "PROCESSED":
             command[current_processed[1][1]][current_processed[1][0]] = "ATTACK"
             command[current_processed[0][1]][current_processed[0][0]] = "SELECT"
-
+            flag = True 
+            
+    #Then call draw_board() to display highlighting 
     last_processed = current_processed
     draw_board()
+
 
 def on_click(event):
     locked = True
@@ -333,7 +385,7 @@ def display_message():
         message = 'White player turn' + '  [' + str(main.player[0]) + ']'
       elif not bool_pointer(pointer):
         message = 'Black player turn' + '  [' + str(main.player[1]) + ']'
-      if main.player[pointer] != 'Human':
+      if main.player[pointer] != 'Human' and not finished:
           cap = len(main.White_moves if bool_pointer(pointer) else main.Black_moves)
           message += '    ' + str(performed) + '/' + str(cap)
     return message 
@@ -389,32 +441,34 @@ def finish():
         display.config(background='White', foreground = 'Black')
     else:
         message = 'Black won by timeout!'
-        display.config(background='Black', foreground = 'White')
+        display.config(background='Black', foreground = 'Black')
     finished = True
 
 
 def checked(for_White):
     global message, finished
+    print("CHECKMATE ------------------------------------------------------")
+    print("CHECKMATE ----------------------------------------")
+    finished = True
     if for_White:
         message = 'White has been checkmated'
         display.config(background='Black', foreground = 'White')
     else:
         message = 'Black has been checkmated'
         display.config(background="White", foreground = 'Black')
-    finished = True
     timer()
 
 def fifty_moves():
     global message, finished
     message = 'DRAW: 50 moves rule'
-    display.config(bg = 'grey45', fg = 'White')
+    display.config(bg = 'grey45', fg = 'Black')
     finished = True
     timer()
 
 def stalemate():
     global message, finished
     message = 'DRAW: Stalemate'
-    display.config(bg = 'grey45', fg = 'White')
+    display.config(bg = 'grey45', fg = 'Black')
     finished = True
     timer()
 
@@ -429,20 +483,30 @@ def insufficent():
 def threefold_repetition():
     global message, finished
     message = 'DRAW: Three-fold repetition'
-    display.config(bg = 'grey45', fg= 'White')
+    display.config(bg = 'grey45', fg= 'Black')
     finished = True
+    timer()
 
 def default():
     global message, finished
-    message = ''
     display.config(bg = 'PaleTurquoise1', fg= 'Black')
+    finished = False
+    timer()
+
+def reseting():
+    global message, finished, game_ongoing
+    display.config(bg = 'grey45', fg= 'Black')
+    message = "RESET THE GAME PLEASE - reseting"
     finished = True
+    timer()
 
 
     
 
 def timer():
-    global finished, pointer, White_Moves, Black_Moves
+    global finished, pointer, White_Moves, Black_Moves, game_ongoing
+
+
     display.config(state='normal')
     if not finished:
       warning()
@@ -458,22 +522,23 @@ def timer():
     window.update_idletasks()
     window.update()
 
-    if finished: 
-        update_wins(main.White_Playing)
+    if finished and game_ongoing:
+        #update_wins(main.White_Playing)
         main.reset()
         window.update()
-        draw_board()
-        #window.after(5000)   #Force starts a repeated game 
+        #draw_board()   #Force starts a repeated game 
         finished = True
+        game_ongoing = False
         #players()
     else:
+        print("PLATERS CALLED VIA TIMER ")
         players()
 
 def update_wins(for_White):
     if for_White:
-        current_file = 'Ai_file1.txt'
+        current_file = file[0]
     else:
-        current_file = 'Ai_file2.txt'
+        current_file = file[1]
 
     file = open(current_file)
     content = file.readlines()
@@ -529,9 +594,9 @@ def console():
 
 
 
-    global console_window, entry_info, current_file, start_option, white_option, black_option, check, label_text
+    global console_window, entry_info, current_file, start_option, white_option, black_option, check, label_text, Time_Option, Repeat_Option, Change_file
     from tkinter import font 
-    current_file = 'Ai_file1.txt'
+    current_file = file[0]
     underline_font = font.Font(underline=TRUE, family="Helvetica",size=10)
     regular_font = font.Font(underline=FALSE, family="Helvetica",size=10)
     link_font = font.Font(underline=TRUE, family="Helevetica", size=10)
@@ -541,7 +606,7 @@ def console():
     console_window = Toplevel()
     console_window.title('ChessAi [Console]')
     console_window.geometry('320x640')
-    start_option = Button(console_window, text = 'Start game?', command=begin, width=50)
+    start_option = Button(console_window, text = 'Start game?', command=begin, width=51)
     start_option.grid(row=0, column=0, columnspan=1)   
     white_option = Text(console_window, height = 1, width = 45, bg = 'White', font=regular_font)
     white_option.grid(row=1, column=0, columnspan=1)   
@@ -555,7 +620,7 @@ def console():
 
     #Creating label
     label_text = StringVar()
-    label = Label(console_window, textvariable=label_text, width=52, anchor=W, background=None) 
+    label = Label(console_window, textvariable=label_text, width=53, anchor=W, background=None) 
     label_text.set("Modifying White file...")
 
     #Checkbutton for file change
@@ -584,7 +649,7 @@ def console():
     #
 
     entry_info = [
-        {"widget": Combobox(console_window, width=30, state = "readonly", values=["Human","Random_Pick","Order_Pick","Mini_Max_Original","Mini_Max_Optimised","Mini_Max_Iterative","AI_Created_1","AI_Created_2"], command=get_combo_index()), "line": 1},
+        {"widget": Combobox(console_window, width=30, state = "readonly", values=["Human","Random_Pick","Order_Pick","Mini_Max_Original","Mini_Max_Optimised","Mini_Max_Aware","AI_Created_1","AI_Created_2"]), "line": 1},
         {"widget": Entry(console_window, width=30), "line": 2},
         {"widget": Entry(console_window, width=30), "line": 3},
         {"widget": Entry(console_window, width=30), "line": 4},
@@ -600,13 +665,13 @@ def console():
     for entry in entry_info:
         if row_num == 5:
             #Combo-box widget
-            print("ROW CALLED")
-            entry["widget"].bind("<<ComboboxSelected>>", write_file_val(entry["widget"], 1))
-            entry["widget"].current(0)
-        
+            entry["widget"].bind("<<ComboboxSelected>>", write_personality_val)
+            index = get_combo_index()
+            entry["widget"].current(index)
         entry["widget"].grid(row=row_num, sticky=E)
-        entry["widget"].delete(0, END)
-        entry["widget"].insert(END, get_file_val(row_num-4))
+        if row_num != 5:
+            entry["widget"].delete(0, END)
+            entry["widget"].insert(END, get_file_val(row_num-4))
         row_num += 1
 
     #Bind the write_file_val function to the event of any changes 
@@ -635,28 +700,36 @@ def console():
     additional.grid(row=16, sticky = 'W')
 
     #
-    highlighting_choice = BooleanVar()
-    highlighting_choice.set(FALSE)
+    highlighting_choice = StringVar()
+    highlighting_choice.set('OFF')
 
-    highlighting_option= Checkbutton(console_window,  textvariable=highlighting_choice, variable=highlighting_choice, onvalue="Highlighting enabled - (Very costly)", offvalue="No AI Highlighting", command=allow_highlighting)
+    highlighting_option= Checkbutton(console_window, textvariable=highlighting_choice, variable=highlighting_choice, text="No AI highlighting", onvalue="AI Highlighting enabled (very costly)", offvalue="AI Highlighting disabled", command=allow_highlighting)
     highlighting_option.grid(row=17, sticky='W')
 
     utility_choice = StringVar()
-    utility_choice= Checkbutton(console_window,  textvariable=utility_choice, variable=utility_choice, onvalue="AI utility updates enabled - (costly)", offvalue="No Ai Utility updates", command=allow_utility)
+    utility_choice= Checkbutton(console_window, textvariable=utility_choice, variable=utility_choice, onvalue="AI utility updates enabled - (costly)", offvalue="No Ai Utility updates", command=allow_utility)
     utility_choice.grid(row=18, sticky='W')
 
+    #Inital Time option
+    Label(console_window, text="Inital Time").grid(row=19, sticky='W')
+    Time_Option = Entry(console_window, width=30)
+    Time_Option.bind("<KeyRelease>", update_inital_time)
+    Time_Option.grid(row=19, sticky='E')
+    Time_Option.insert(0, 300)
+    
     #Repeat option 
-    Label(console_window, text="Repeated games").grid(row=19, sticky='W')
+    Label(console_window, text="Repeated games").grid(row=20, sticky='W')
     Repeat_Option = Entry(console_window, width=30)
-    Repeat_Option.grid(row=19, sticky='E')
+    Repeat_Option.grid(row=20, sticky='E')
+    Repeat_Option.insert(0, 0)
 
     #Change associated file
-    Label(console_window, text="Change file identifer").grid(row=20, sticky='W')
+    Label(console_window, text="Change file identifer").grid(row=21, sticky='W')
     Change_file = Entry(console_window, width=30)
-    Change_file.grid(row=20, sticky='E')
+    Change_file.bind("<KeyRelease>", update_file)
+    Change_file.grid(row=21, sticky='E')
+    Change_file.insert(0, file[0])
 
-    
-    console_window.update()
 
     #Handle links 
     import webbrowser
@@ -668,13 +741,113 @@ def console():
 
     #Ownership
     copymark = Label(console_window, width = 45, text="Made by CodeAvali -> To Github", font=regular_font, foreground="Blue")
-    copymark.grid(row = 25, sticky='W', pady=175)                                       
+    copymark.grid(row = 25, sticky='W', pady=155)                                       
     make_hyperlink(copymark, open_git)
 
 #----
     
+def update_file(event):
+    global file, current_file
+
+    #Need to verify that the file is legitmate and exists
+    value = Change_file.get()
+    valid = False
+
+    try:
+        current = open(value)
+        valid = True
+    except:
+        valid = False
+
+    #If valid, write to file 
+    if current_file == file[0] and valid:
+        file[0] = value
+        current_file = value
+    elif valid:
+        file[1] = value
+        current_file = value
+        
+    row_num = 5
+    #Pack the entry widgets - to reload them 
+    for entry in entry_info:
+        if row_num == 5:
+            #Combo-box widget
+            index = get_combo_index()
+            entry["widget"].current(index)
+        if row_num != 5:
+            entry["widget"].delete(0, END)
+            entry["widget"].insert(END, get_file_val(row_num-4))
+        row_num += 1
+
+    
+#-------
+
+
+
+    
+def update_inital_time(event):
+    global Time_Option, time
+
+    value = Time_Option.get()
+    valid = True
+
+    #Validation structure
+    try:
+        test = int(value)
+    except:
+        valid = False
+    
+    #Then update time or fix
+    if valid:
+        value = int(value)
+        time[0] = value
+        time[1] = value
+    else:
+        #Set as lazy 1
+        Time_Option.delete(0,"")
+        Time_Option.insert(0,1)
+
+
+
+
+
+
+
+    
 def get_combo_index():
-    print("HELLOOO - COMBO COMMAND")
+
+    #Open file and read first line
+    personality = get_file_val(1)
+
+    #Iterate to find index - Linear search is applicable for a small number of options 
+    values = ["Human","Random_Pick","Order_Pick","Mini_Max_Original","Mini_Max_Optimised","Mini_Max_Aware","AI_Created_1","AI_Created_2"]
+    for index in range(0, len(values)-1):
+        if str(values[index]) == personality:
+            return index 
+        
+    return 0 #Otherwise; default to just human 
+
+#----
+
+def write_personality_val(event):
+    global current_file, entry_info
+
+    #Get the combo index and find value
+    entry = entry_info[0]
+    result = entry["widget"].get()
+
+    print("PERSONALITY", result)
+
+    #Given the known result - write to the file
+    current = open(current_file)
+    content = current.readlines()
+    content[0] = str(result) + '\n'
+    current.close()
+
+    # And write everything back
+    with open(current_file, 'w') as file:
+        file.writelines(content)
+
 
 
 def get_file_val(num):
@@ -694,7 +867,7 @@ def write_file_val(widget, line):
 
     #Get the written contents from the entry box 
     new = widget.get()
-    print("WRITE CALLED")
+    print("WRITE CALLED", new, widget)
     current = open(current_file)
     content = current.readlines()
     content[line-1] = str(new) + '\n'
@@ -712,19 +885,26 @@ def change_current_file():
 
     #Toggle current_file
 
-    if current_file == 'Ai_file1.txt':
-        current_file = 'Ai_file2.txt'
+    if current_file == file[0]:
+        current_file = file[1]
     else:
-        current_file = 'Ai_file1.txt'
+        current_file = file[0]
 
     #Therefore - then reload all entry values
     row_num = 5
     #Pack the entry widgets
     for entry in entry_info:
+        if row_num == 5:
+            index = get_combo_index()
+            entry["widget"].current(index)
+        #Normal case..
         entry["widget"].grid(row=row_num, sticky=E)
         entry["widget"].delete(0, END)
         entry["widget"].insert(END, get_file_val(row_num-4))
         row_num += 1
+
+    Change_file.delete(0, END)
+    Change_file.insert(0, current_file)
 
 
     console_window.update()
@@ -747,7 +927,22 @@ def update_personality_tag(White_Playing, Personality, wins):
         
 def repeat_game():
     #Code for repeated games - according to repeated_option widget
-    raise NotImplementedError
+    value = Repeat_Option.get()
+    valid = False
+    #Validate for int, and above 0
+    try:
+        value = int(value)
+        if value > 0:
+            valid = True
+    except:
+        valid = False
+    #Decrement widget value
+    if valid == True:
+        Repeat_Option.delete(0, END)
+        Repeat_Option.insert(END,int(value)-1)
+        #Start game again after delay
+        delay.sleep(2)
+        begin() 
 
 
 
@@ -757,27 +952,24 @@ def file_type_strip(string):
     return string.replace('.txt','')
 
 #---
+global file 
+file = ['Ai_file1.txt','Ai_file2.txt']
 
-def file_validated(current_file):
+def file_validated(address):
 
-    # Required file validation 
-    player = main.player
-    print(player)
-    if current_file in main.player:
-        return True
-    
-    current = open(current_file)
+    # Required variables for valdiation
+    current = open(file[address])
     content = current.readlines()
-
     failed = []
 
     for line in range(1, 9):
+        #Attempt float conversion
         try:
-            value = int(content[line])
+            test = float(content[line])
         except:  
             failed.append(line + 1)
-    print("FINALLY", failed)
-    if failed:
+
+    if len(failed) >= 1:
         console_error(failed)
         #Prevent the AI from being enabled
         return False 
@@ -788,85 +980,79 @@ def file_validated(current_file):
 
 
 def console_error(failed):
-    #Need to highlight text as red for error; 
 
-    print("failed", failed)
-
+    # Replace non-float entries with 'FloatError' message
     increment = 0 
 
     for entry in entry_info:
         increment += 1
-        print("issue", increment)
         if increment in failed:
-            print("incrementing entry_info")
             entry["widget"].delete(0, END)
-            entry["widget"].insert(END, "IntError")
+            entry["widget"].insert(END, "FloatError")
 
         
 
 
 
 
-
-
-
-
-
-    return NotImplementedError
-
-
-
-
-
-
-
     
 def allow_highlighting():
-    global UPDATE_OPT
-    if UPDATE_OPT:
-        UPDATE_OPT = False
+    global THOUGHT_OPT, command 
+    if THOUGHT_OPT:
+        THOUGHT_OPT = False
+        command = reset_command()
     else:
-        UPDATE_OPT = True
+        THOUGHT_OPT = True
     print("I like colours")
     #raise NotImplementedError
 
 def allow_utility():
+    global UTILITY_OPT
     print("YAY")
+    if UTILITY_OPT:
+        UTILITY_OPT = False
+    else:
+        UTILITY_OPT = True
+    print(UTILITY_OPT)
     console_window.update()
 
 #----
 
 def begin():
-    global counter, command, check, game_ongoing, finished
+    global counter, command, check, game_ongoing, finished, current_file
 
     if game_ongoing:
         #Reset the game 
-        print("GAME RESETING")
         finished = True
         game_ongoing = False
+        start_option.config(text='Enable AI')
+        #main.reset()
+        #draw_board()   #ISSUE: Appears to have some 'memory' - 
     else:
+      
 
-      white_valid = file_validated(main.player[0])
+      white_valid = file_validated(0)
 
       if not white_valid:
-        if current_file == 'Ai_file2.txt':
+        if current_file == file[1]:
           check.invoke()
-          print("ERROR: WHITE NOT VALID")
+          file_validated(0)
       else: 
-
-        black_valid = file_validated(main.player[1])
-
+        #Check if black file is valid
+        black_valid = file_validated(1)
         if white_valid and not black_valid:
-            print("ERROR: BLACK NOT VALID", label_text)
-            #Need to display black file 
-            if current_file == 'Ai_file1.txt':
+            #Need to display black file - if on white
+            if current_file == file[0]:
               check.invoke()
+              file_validated(1)
 
         else:
           #Game can start
           game_ongoing = True
           finished = False
           command = reset_command()
+          default()
+          update_inital_time(0)
 
           #Should check that player is updated immediately
           main.reset_load(True)
@@ -887,7 +1073,7 @@ def players():
     global White_Playing, board
     Time_Stamp = main.Time_Stamp
     player = main.player
-    if main.player[pointer] != 'Human':
+    if main.player[pointer] != 'Human' and game_ongoing:
         #Perform ai actions
         
         #main.after(10, threading.Thread(target=main.gameplay_loop((-1, -1), (-1, -1)), name="alt").start() )

@@ -1,4 +1,4 @@
-import main, copy, random
+import main, copy, random, GUI
 
 # Mini-Max-Optimised: An optimised version of Mini_Max which can comfortably achieve loseless depth 3 quickly and even depth 4 at an acceptable pace. 
 
@@ -45,7 +45,7 @@ def call(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
       alpha = max(alpha, best)
       if depth == main.cap:
         scores.append(value + random.uniform(0, main.HAZE))
-        #GUI.lazy_update(scores, moves[scores.index(max(scores))])
+        GUI.lazy_update(scores, moves[scores.index(max(scores))])
 
     if depth != main.cap:
       return best #Return the played (maximised) score for the state.
@@ -73,7 +73,7 @@ def call(board, W_Move, B_Move, White_Playing, alpha, beta, depth):
       beta = min(beta, best)
       if depth == main.cap:
         scores.append(value + random.uniform(-main.HAZE, 0))
-        #GUI.lazy_update(scores, moves[scores.index(min(scores))])
+        GUI.lazy_update(scores, moves[scores.index(min(scores))])
     
     if depth != main.cap:
       return best #Return the played (minimised) score for the state.

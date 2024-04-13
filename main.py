@@ -17,11 +17,9 @@ def turn(Time_Stamp):
   #INDEPENDENT: Determines the current players turn, depending on time_stamp; and loads Moves_Tuple
   
   if Time_Stamp % 2 == 1: 
-    print(" Black Playing...") 
     Moves_Tuple = Black_moves
     return False, Moves_Tuple
   else:
-    print(" White Playing...")
     Moves_Tuple = White_moves
     return True, Moves_Tuple
 
@@ -357,7 +355,6 @@ def lazy_pin(board, White_Moves, Black_Moves, for_White):
   checked = []
 
   if for_White:
-    White_Playing = True 
     #Perform each possible move; 
     for i in range(len(White_Moves)):
       temp, W_Moves, B_Moves = copy.deepcopy(board), copy.deepcopy(White_Moves), copy.deepcopy(Black_Moves)
@@ -378,7 +375,6 @@ def lazy_pin(board, White_Moves, Black_Moves, for_White):
         checked.append(White_Moves[i])
 
   if not for_White:
-    White_Playing = False
     #Perform each possible move;
     for i in range(len(Black_Moves)):
       temp, W_Moves, B_Moves = copy.deepcopy(board), copy.deepcopy(White_Moves), copy.deepcopy(Black_Moves)
@@ -435,10 +431,7 @@ def legal(move_to, move_from, move_space):
   #----
 
 def clean(delete, moves_structure):
-
-    #cleaned = tuple(delete)
-    #checked = [move for move in moves_structure if move[0] != delete]  #List comprehension improves clarity
-
+    #...
     return [move for move in moves_structure if move[0] != delete]
 
   #----
@@ -468,8 +461,7 @@ def generate(move_from, move_to):
   global White_moves, Black_moves, Blocked_Tuple
   #From the location; get all peices that have been affected
 
-  locations = []
-  Blocked_Tuple = []
+  locations, Blocked_Tuple = [], []
 
   #for moving_from
   locations += straight(move_from, True)
@@ -547,8 +539,6 @@ def passant_check(move_from, move_to, en_location):
     if (move_from[0] + 1) <= 7:   #Opposite range check - prevent error.
       if board[final_y][move_from[0] + 1] in PAWN:
         en_flag = True     
-
-  #print(en_flag, "EN FLAG CHECK, #######################################################???????????????????????????????????")
 
   #If move is elegible for en_passant response, create respective token for player
   if en_flag:
@@ -633,9 +623,7 @@ def castling(for_white, board):
 def reset():
   global board, Moves_Tuple, Blocked_Tuple, Protected_Tuple, Attack_Tuple, White_Moves, Black_Moves, en_location, en_flag, King_location, Checked, player, utility, restlessness, castling_permisions, Time_Stamp, White_Playing, White_moves, Black_moves
 
-  print("RESET CALLED")
   time.sleep(1)
-  print("RESETTTTTTTTT --------------------------------------")
   board = [[B_Rook, B_Knig, B_Bish, B_Quee, B_King, B_Bish, B_Knig, B_Rook],
         [B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn],
         [Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_],
@@ -664,15 +652,9 @@ def reset():
   restlessness = 0 
 
   castling_permisions = [True, True]
-  #White_moves, Black_moves = refresh_moves(White_moves, Black_moves, board)
-  #White_Moves, Black_Moves = White_moves, Black_moves
-
-  import algorithms.Position_Book
-
-  algorithms.Position_Book.hash_reset()
-  
-  print("AFTER RESET", len(White_moves), len(White_Moves), len(Black_moves), len(Black_Moves))
-  
+  White_moves, Black_moves = refresh_moves(White_moves, Black_moves, board)
+  White_Moves, Black_Moves = White_moves, Black_moves
+  store_it(White_moves, Black_moves)
 
   #Other
 
@@ -686,13 +668,6 @@ def reset():
     GUI.pointer = 0
 
   GUI.game_ongoing = False
-
-  #store_it(White_Moves, Black_Moves)
-  #GUI.reseting()
-  #time.sleep(2)
-  #GUI.default()
-  print(Time_Stamp)
-
   #Check if there is a value in Repeat_Option - repeat game if necessary
   GUI.repeat_game()
 
@@ -701,7 +676,7 @@ def reset():
 
 
 def get_moves():
-  print("FINDING REAL", len(White_Moves), len(Black_Moves))
+  global White_Moves, Black_Moves
   return White_Moves, Black_Moves
   
 W_Pawn = '♟︎'
@@ -791,19 +766,14 @@ def ai_call():
   MAX, MIN, HAZE = 1000, -1000, (restlessness / RESTLESSNESS_FACTOR)**2
   cap = DEPTH
   
-  print("RESTLESSNESS", HAZE)
 
   #Pass to respective ai
   result = ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp)
-  print("RETURNED", result)
   move_from, move_to = (result[0][0], result[0][1]), (result[1][0], result[1][1])
 
   #Handle ai time back to GUI - and to terminate the game if the time has run out 
   total = round(time.time() - start)
   GUI.time[GUI.pointer] -= total
-  if GUI.time[GUI.pointer] < 0:
-    GUI.finish()
-    GUI.timer()
 
   #Finally, return back the chosen move 
   return move_from, move_to
@@ -823,9 +793,9 @@ def ai_load(for_white):
     file = open(GUI.file[1], 'r')
 
   PERSONALITY = str(file.readline().strip())
-  DEPTH = round(float(file.readline().strip()))
+  DEPTH = max(1, round(float(file.readline().strip())))
   END_GAME_TRANSITION = float(file.readline().strip())
-  RESTLESSNESS_FACTOR = round(float(file.readline().strip()))
+  RESTLESSNESS_FACTOR = max(1, round(float(file.readline().strip())))
   QUEEN_VALUE = float(file.readline().strip())
   ROOK_VALUE = float(file.readline().strip())
   BISHOP_VALUE = float(file.readline().strip())
@@ -842,14 +812,11 @@ def ai_personality(W_moves, B_moves, cap, Moves_Tuple, temp):
     #Get personality
     current = PERSONALITY
 
-    print(PERSONALITY, "-------------------------")
-
     start = time.time()
 
     # Update the player tag is there is a change between current personality and player
     if current != player[0 if White_Playing else 1]:
       player[0 if White_Playing else 1] = str(current)
-      print("UPDATING ###############################", WINS)
       GUI.update_personality_tag(White_Playing, player[0 if White_Playing else 1], WINS)
 
     #Hence, call the respective ai function
@@ -969,8 +936,6 @@ def OrderMoves(Moves, temp, for_White):
     #Otherwise;
     moveScore.append(moveScoreGuess)
 
-  #print(moveScore)
-
   sortedMoves = [Moves for _,Moves in sorted(zip(moveScore,Moves), reverse=True)]
   return sortedMoves
 
@@ -1021,7 +986,7 @@ PEICE_VALUE_KEYWORDS = {
 global color_multiplier_dict, MOBILITY_FACTOR
 color_multiplier_dict = {'W': 1, 'B': -1, 'E': 0}
 
-MOBILITY_FACTOR = 10
+MOBILITY_FACTOR = 8
 
 def peice_square_optimised(board, W_Move, B_Move):
   score = (len(W_Move) - len(B_Move)) / MOBILITY_FACTOR
@@ -1039,9 +1004,9 @@ def peice_square_optimised(board, W_Move, B_Move):
   'Pawn': [[ 350,   400,   450,   500,  500,   450,  400,  350],
            [98, 134,  61,  95,  68, 126, 34, -11 ],
            [-6,   7,  26,  31,  65,  56, 25, -20 ],
-           [-14,  13,   6,  21,  23,  12, 17, -23],
-           [-27,  -2,  -5,  12,  17,   6, 10, -25],                 #Changed to POTS evaluation as more discrete values :) - from chessprogramming wiki
-           [-26,  -4,  -4, -10,   3,   3, 33, -12],
+           [-14,  13,   6,  21,  49,  12, 17, -23],
+           [-37,  -2,  -5,  22,  73,   6, 10, -40],                 #Changed to POTS evaluation as more discrete values :) - from chessprogramming wiki
+           [-30,  -4,  -4, 20,   15,   3, 33, -26],
            [-35,  -1, -20, -23, -15,  24, 38, -22],
            [ 350,   400,   450,   500,  500,   450,  400,  350]],
 
@@ -1153,8 +1118,15 @@ def peice_square_optimised(board, W_Move, B_Move):
       color_multiplier = color_multiplier_dict[peice[0]]
 
       if peice[2:6] in PIECE_SQUARE_VALUES:
-        score += ((PIECE_SQUARE_VALUES[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (MG_SCALE / 10000)) + ((PEICE_SQUARE_VALUES_EG[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (EG_SCALE / 10000)) * color_multiplier * PIECE_VALUES[peice[2:6]]
+        #score = ((PIECE_SQUARE_VALUES[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (MG_SCALE / 10)) + ((PEICE_SQUARE_VALUES_EG[peice[2:6]][y if (color_multiplier == 1) else (7 - y)][x] + 100) * (EG_SCALE / 10)) * color_multiplier * PIECE_VALUES[peice[2:6]]
+        #print(score, peice[2:6])
 
+        factor = (PIECE_SQUARE_VALUES[peice[2:6]][y if (color_multiplier == 1) else (7-y)][x] + 100) * (MG_SCALE)
+        factor_EG = (PEICE_SQUARE_VALUES_EG[peice[2:6]][y if (color_multiplier == 0) else (7-y)][x] + 100) * (EG_SCALE)
+        combined = (factor + factor_EG) / 100
+        score += (color_multiplier * PIECE_VALUES[peice[2:6]]) * combined
+        #print(peice[2:6], score, factor, factor_EG, combined)
+  
   return score 
 
 #----
@@ -1212,16 +1184,12 @@ def ai_perform(W_Moves, B_Moves, move_from, move_to, temp):
 #-----
 
 def restless(has_captured, pawn_move):
-  global restlessness
-  #Assuming move is not a pawn move
-  restlessness += 1
+  global restlessness 
+  restlessness += 1 #Increment restlessness
   #Then just need to check that a move is not a capture 
   if pawn_move:
-    import algorithms.Position_Book
-    algorithms.Position_Book.hash_reset()
     restlessness = 0 
-  elif restlessness >= 50: #50 move rule
-    GUI.fifty_moves()
+
   
 #----
 
@@ -1301,7 +1269,6 @@ def refresh_moves(White_moves, Black_moves, board):
 # (5) --------- Main gameplay loop
 
 White_Playing = True 
-#print(np.matrix(board))
 Time_Stamp = 0
 
 global White_Threatened, Black_Threatened
@@ -1313,12 +1280,12 @@ def gameplay_loop(click1, click2):
   pawn_move, has_captured = False, False
   selected = (click1, click2)
 
-  Playing = True
   if not GUI.finished:
     #Pass the turn to the next player                     #Temp fix need to fix bug
 
     White_Playing, Moves_Tuple = turn(Time_Stamp)
     White_Playing = GUI.bool_pointer(GUI.pointer)
+    print(White_Playing)
     Time_Stamp += 1
 
     #Need to check for Stalemate
@@ -1344,6 +1311,10 @@ def gameplay_loop(click1, click2):
         move_from, move_to = ai_call()
         board = holder 
 
+        if GUI.time[GUI.pointer] < 0:
+          GUI.finish()
+          return None 
+
       #Perform exceptions; 
       Valid = legal(move_to, move_from, Moves_Tuple)
       
@@ -1358,7 +1329,7 @@ def gameplay_loop(click1, click2):
 
       #Increment restlessness for 50 move counter
       restless(has_captured, pawn_move)
-
+        
       #Printing inputs
   
       board = perform(move_to, move_from, board)    
@@ -1386,13 +1357,16 @@ def gameplay_loop(click1, click2):
       map = load(King_location[0][1], King_location[0][0], King_location[0], map)
       White_moves, Black_moves = explode(map, White_moves, Black_moves)
 
-      print(np.matrix(board))
-      GUI.draw_board()
+      if restlessness >= 50:
+        #50 non-progressing moves have occured
+        GUI.fifty_moves()
+        return None
+      else:
+        GUI.draw_board()
 
       print("----- PERFORMANCE CHECKS ------")            
       print("Complexity, white moves", len(White_moves))
       print("Complexity, black moves", len(Black_moves))
-      Playing = True 
 
       new_White_Threatened, new_Black_Threatened = king_attacked(Black_moves, board), king_attacked(White_moves, board)
       if new_White_Threatened != White_Threatened:
@@ -1416,33 +1390,27 @@ def gameplay_loop(click1, click2):
       if len(White_valid) == 0:
         if king_attacked(Black_moves, board):
           GUI.checked(True)
-          return 0
-        #elif not White_Playing:
-          #GUI.stalemate()
+          return None
+        else:
+          GUI.stalemate()
+          return None 
 
       if len(Black_valid) == 0:
         #Need to see if the position is checkmate or not 
         if king_attacked(White_moves, board): 
           GUI.checked(False)
-          return 0 
-        #elif White_Playing:                                                                                #TO DO - CHANGE STALEMATE CHECK TO BE FIRST. 
-          #GUI.stalemate()
-        
-      import algorithms.Position_Book
-      print(algorithms.Position_Book.create_instance())
-
+          return None 
+        else:                                                                               
+          GUI.stalemate()
+          return None 
       
       White_Playing, Moves_Tuple = turn(Time_Stamp)
       
       store_it(White_valid, Black_valid)
 
-      MOVE_BONUS = 0
-
       if White_Playing and GUI.pointer == 1:
-        GUI.time[1] += MOVE_BONUS              #Reward set additional time 
         GUI.pointer = 0 
       elif not White_Playing and GUI.pointer == 0:
-        GUI.time[0] += MOVE_BONUS
         GUI.pointer = 1
 
       utility = [peice_square_optimised(board, White_valid, Black_valid)]
@@ -1450,5 +1418,5 @@ def gameplay_loop(click1, click2):
 
       GUI.locked = False
 
-#########
-    
+####################
+## End of main.py ##

@@ -47,17 +47,16 @@ command = [['','','','','','','',''],
             ['','','','','','','','']]
 
 #Tk specific
-global board, sprites, types, WHITE, BLACK, White_Playing, message, performed 
+global sprites, types, WHITE, BLACK, White_Playing, message, performed 
 performed = 0 
 message = ''
 White_Playing = True
 types = [W_King, B_King, W_Quee, B_Quee, W_Rook, B_Rook, W_Bish, B_Bish, W_Knig, B_Knig, W_Pawn, B_Pawn, W_En_Passant_Token, B_En_Passant_Token]
-WHITE = [W_King, W_Quee, W_Rook, W_Bish, W_Knig, W_Pawn, W_En_Passant_Token]
-BLACK = [B_King, B_Quee, B_Rook, B_Bish, B_Knig, B_Pawn, B_En_Passant_Token]
-EMPTY = [Empty_, W_En_Passant_Token, B_En_Passant_Token]
+WHITE = main.WHITE
+BLACK = main.BLACK
+EMPTY = main.EMPTY
 image_files = ["Peices/W_King.png","Peices/B_King.png","Peices/W_Quee.png","Peices/B_Quee.png","Peices/W_Rook.png","Peices/B_Rook.png","Peices/W_Bish.png","Peices/B_Bish.png","Peices/W_Knig.png","Peices/B_Knig.png","Peices/W_Pawn.png","Peices/B_Pawn.png", "Peices/W_En_Passant_Token", "Peices/B_En_Passant_Token"]
 sprites = []
-board = main.board
 locked = False
 game_ongoing = False
 
@@ -78,9 +77,6 @@ s.configure('yellow.Vertical.TProgressbar', foreground='purple', background='whi
 utility = Progressbar(orient=VERTICAL, length=560, maximum=200, style='yellow.Vertical.TProgressbar')
 utility.config(style='yellow.Vertical.TProgressbar')
 utility.place(x=620, y=20, width=15)
-
-#TROUGH_COLOR = 'white'
-#BAR_COLOR = 'black'
 
 #Need to learn how to change colour of the progress bar
 #https://www.youtube.com/watch?v=N4v9Z0e3TxA
@@ -127,8 +123,6 @@ def lazy_update(utility_scores, current_processed):
     global THOUGHT_OPT, UTILITY_OPT
     performed = len(utility_scores)
     if not finished:
-        #x = threading.Thread(target=update_window, args = ())
-        #x.start()
         update_window()
     if THOUGHT_OPT:
         thought_highlighting(current_processed)
@@ -156,28 +150,8 @@ def update_window():
     window.update()
 
 
-def message_window():
-
-    display.config(state='normal')
-
-    display.tag_configure("tag_name", justify='center')
-    display.tag_configure("timing", justify='left')
-    display.delete("1.0",END)
-    display.insert(END, message)
-    display.insert(END, form(time))
-    display.update()
-
-
-
-    return NotImplementedError 
-    
-
-
-        
-
-
 def simple_update_utility(utility_scores):
-    ENLARGMENT_FACTOR = 10 + (0.05 * main.Time_Stamp)
+    ENLARGMENT_FACTOR = 5 + (0.05 * main.Time_Stamp)
     utility_value = (statistics.fmean(utility_scores) * ENLARGMENT_FACTOR) + 100
     #Need to ensure it lies within the range;
     if utility_value > 200:
@@ -221,7 +195,6 @@ def thought_highlighting(current_processed):
 
 
 def on_click(event):
-    locked = True
     global command, WHITE, BLACK, board, White_Playing
     board = main.board
 
@@ -235,11 +208,11 @@ def on_click(event):
     #Then round to exact; 
     X_location = round((x / SQUARE_SIZE))
     Y_location = round(y / SQUARE_SIZE)
-    print("CORDINATES", X_location, Y_location)
+
     #From there, check that this was not an 'action' click
     if command[Y_location][X_location] == "MOVE" or command[Y_location][X_location] == "ATTACK":
         #Perform the player's move; 
-        move_to = (X_location, Y_location)                                                   #TO DO
+        move_to = (X_location, Y_location)                                                   
         for i in range(0,8):
             for j in range(0,8):
                 if command[j][i] == "SELECT":
@@ -249,15 +222,11 @@ def on_click(event):
             player_testing = True
         elif board[move_from[1]][move_from[0]] in BLACK:
             player_testing = False
-        #print("VALID check, ", player_testing, main.White_Playing)
-        if bool(player_testing) == bool_pointer(pointer):
-            locked = True
-            new_thread = threading.Thread(target=main.gameplay_loop(move_from, move_to), name="alt")                                                         #main.gameplay_loop(move_from, move_to)
+        if bool(player_testing) == bool_pointer(pointer): 
+            new_thread = threading.Thread(target=main.gameplay_loop(move_from, move_to), name="alt")                                                        
             command = reset_command()
-            locked = False
-            #draw_board()
+            
     else:
-        print("ALTERNATIVE COND - HIGHLIGHT FIRED")
         highlight(X_location, Y_location)
 
 
@@ -307,16 +276,6 @@ def on_chess_click(event):
 
 #Images for peices 
 inc = -1
-
-board = [[B_Rook, B_Knig, B_Bish, B_Quee, B_King, B_Bish, B_Knig, B_Rook],
-        [B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn, B_Pawn],
-        [Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_],
-        [Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_],
-        [Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_],
-        [Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_, Empty_],
-        [W_Pawn, W_Pawn, W_Pawn, W_Pawn, W_Pawn, W_Pawn, W_Pawn, W_Pawn], 
-        [W_Rook, W_Knig, W_Bish, W_Quee, W_King, W_Bish, W_Knig, W_Rook]]
-
 window.title('ChessAI [Board]')
 
 #Canvas creation 
@@ -370,10 +329,6 @@ def draw_board():
     #locked = False
     window.update_idletasks()
 
-    #Hence - or otherwise, get the next player to play - which should be automatic if AI
-    #colors = ["white","grey"]
-
-
 def get_contents():  
     return board 
 
@@ -403,7 +358,7 @@ def display_image(col, row, x1, y1):
 
     canvas.create_image(x1 + (0.5 * SQUARE_SIZE), y1 + (0.5 * SQUARE_SIZE), image=sprites[inc])
     
-
+draw_board()     
 
 #Timer objects
 global mins, sec, minute, second, time, MOVE_BONUS, pointer, finished
@@ -435,20 +390,23 @@ def count_down():
 
 
 def finish():
-    global message, finished
+    global message, finished, game_ongoing
     if pointer == 1:
         message = 'White won by timeout!'
         display.config(background='White', foreground = 'Black')
+        time[1] = time[0]
     else:
         message = 'Black won by timeout!'
-        display.config(background='Black', foreground = 'Black')
+        display.config(background='Black', foreground = 'White')
+        time[0] = time[1]
     finished = True
+    game_ongoing = True
+    timer()
+    
 
 
 def checked(for_White):
     global message, finished
-    print("CHECKMATE ------------------------------------------------------")
-    print("CHECKMATE ----------------------------------------")
     finished = True
     if for_White:
         message = 'White has been checkmated'
@@ -459,10 +417,11 @@ def checked(for_White):
     timer()
 
 def fifty_moves():
-    global message, finished
+    global message, finished, game_ongoing
     message = 'DRAW: 50 moves rule'
     display.config(bg = 'grey45', fg = 'Black')
     finished = True
+    game_ongoing = True
     timer()
 
 def stalemate():
@@ -481,17 +440,18 @@ def insufficent():
     timer()
 
 def threefold_repetition():
-    global message, finished
+    global message, finished, game_ongoing
     message = 'DRAW: Three-fold repetition'
     display.config(bg = 'grey45', fg= 'Black')
     finished = True
+    game_ongoing = True
     timer()
 
 def default():
     global message, finished
     display.config(bg = 'PaleTurquoise1', fg= 'Black')
     finished = False
-    timer()
+    #timer()
 
 def reseting():
     global message, finished, game_ongoing
@@ -504,7 +464,7 @@ def reseting():
     
 
 def timer():
-    global finished, pointer, White_Moves, Black_Moves, game_ongoing
+    global finished, pointer, White_Moves, Black_Moves, game_ongoing, board, locked
 
 
     display.config(state='normal')
@@ -523,15 +483,16 @@ def timer():
     window.update()
 
     if finished and game_ongoing:
-        #update_wins(main.White_Playing)
+        #print("TIMER GAME_ONGOING COND")
         main.reset()
+        board = main.board
+        start_option.config(text="Press to restart game")
         window.update()
-        #draw_board()   #Force starts a repeated game 
         finished = True
         game_ongoing = False
-        #players()
+        locked = False
     else:
-        print("PLATERS CALLED VIA TIMER ")
+        #print("PLATERS CALLED VIA TIMER ")
         players()
 
 def update_wins(for_White):
@@ -543,7 +504,7 @@ def update_wins(for_White):
     file = open(current_file)
     content = file.readlines()
     current_wins = int(content[9]) + 1
-    print("GOT CURRENT WINS", current_wins)
+    #print("GOT CURRENT WINS", current_wins)
     content[9] = str(current_wins)
 
     # and write everything back
@@ -588,8 +549,7 @@ def form(time):
 #----
 
 def console():
-    #TO DO - FOR QUALITY - POSITION THE TOP LEVEL WINDOW RELATIVE TO...
-    #https://www.tutorialspoint.com/python-tkinter-how-to-position-a-toplevel-widget-relative-to-the-root-window
+    #....
     
 
 
@@ -606,7 +566,7 @@ def console():
     console_window = Toplevel()
     console_window.title('ChessAi [Console]')
     console_window.geometry('320x640')
-    start_option = Button(console_window, text = 'Start game?', command=begin, width=51)
+    start_option = Button(console_window, text = 'Enable AI?', command=begin, width=51)
     start_option.grid(row=0, column=0, columnspan=1)   
     white_option = Text(console_window, height = 1, width = 45, bg = 'White', font=regular_font)
     white_option.grid(row=1, column=0, columnspan=1)   
@@ -710,6 +670,9 @@ def console():
     utility_choice= Checkbutton(console_window, textvariable=utility_choice, variable=utility_choice, onvalue="AI utility updates enabled - (costly)", offvalue="No Ai Utility updates", command=allow_utility)
     utility_choice.grid(row=18, sticky='W')
 
+    utility_choice.invoke()
+    utility_choice.invoke()
+
     #Inital Time option
     Label(console_window, text="Inital Time").grid(row=19, sticky='W')
     Time_Option = Entry(console_window, width=30)
@@ -743,6 +706,7 @@ def console():
     copymark = Label(console_window, width = 45, text="Made by CodeAvali -> To Github", font=regular_font, foreground="Blue")
     copymark.grid(row = 25, sticky='W', pady=155)                                       
     make_hyperlink(copymark, open_git)
+
 
 #----
     
@@ -836,7 +800,7 @@ def write_personality_val(event):
     entry = entry_info[0]
     result = entry["widget"].get()
 
-    print("PERSONALITY", result)
+    #print("PERSONALITY", result)
 
     #Given the known result - write to the file
     current = open(current_file)
@@ -867,7 +831,7 @@ def write_file_val(widget, line):
 
     #Get the written contents from the entry box 
     new = widget.get()
-    print("WRITE CALLED", new, widget)
+    #print("WRITE CALLED", new, widget)
     current = open(current_file)
     content = current.readlines()
     content[line-1] = str(new) + '\n'
@@ -931,15 +895,15 @@ def repeat_game():
     valid = False
     #Validate for int, and above 0
     try:
-        value = int(value)
-        if value > 0:
+        value = float(value)
+        if value >= 1:
             valid = True
     except:
         valid = False
     #Decrement widget value
     if valid == True:
         Repeat_Option.delete(0, END)
-        Repeat_Option.insert(END,int(value)-1)
+        Repeat_Option.insert(END,float(value)-1)
         #Start game again after delay
         delay.sleep(2)
         begin() 
@@ -1003,17 +967,14 @@ def allow_highlighting():
         command = reset_command()
     else:
         THOUGHT_OPT = True
-    print("I like colours")
     #raise NotImplementedError
 
 def allow_utility():
     global UTILITY_OPT
-    print("YAY")
     if UTILITY_OPT:
         UTILITY_OPT = False
     else:
         UTILITY_OPT = True
-    print(UTILITY_OPT)
     console_window.update()
 
 #----
@@ -1026,11 +987,11 @@ def begin():
         finished = True
         game_ongoing = False
         start_option.config(text='Enable AI')
+        #update_inital_time('')
+        draw_board()
         #main.reset()
         #draw_board()   #ISSUE: Appears to have some 'memory' - 
     else:
-      
-
       white_valid = file_validated(0)
 
       if not white_valid:
@@ -1051,20 +1012,17 @@ def begin():
           game_ongoing = True
           finished = False
           command = reset_command()
+          draw_board()
           default()
-          update_inital_time(0)
+          update_inital_time('')
 
           #Should check that player is updated immediately
           main.reset_load(True)
           main.reset_load(False)
           
-
-
-
-
-          start_option.config(text = 'AI Enabled: Press again to reset')
+          #...
+          start_option.config(text = 'AI Enabled: Press again to pause')
           counter = threading.Thread(target=count_down(), name="counter").start()
-          #counter = Process(target=count_down(), name="counter").start()
 
 
 console()
@@ -1075,33 +1033,18 @@ def players():
     player = main.player
     if main.player[pointer] != 'Human' and game_ongoing:
         #Perform ai actions
-        
-        #main.after(10, threading.Thread(target=main.gameplay_loop((-1, -1), (-1, -1)), name="alt").start() )
         print("------------------ CALLED AI -----------------------------")
-        #new_thread = Process(target=main.gameplay_loop((-1, -1), (-1, -1)), name="alt").start()
         new_thread = threading.Thread(target=main.gameplay_loop((-1, -1), (-1, -1)), name="alt").start()
 
-#Start the game
+
 def start_game():
-    print("STARTING GAME -----------------------------------------------")
+    #...
     global White_Playing 
     console()
     draw_board()
     players()
     window.mainloop()
 
-
-#Need to check for clicks
-
-def on_click(event):
-    command = [['','','','','','','',''],
-               ['','','','','','','',''],
-               ['','','','','','','',''],
-               ['','','','','','','',''],
-               ['','','','','','','',''],
-               ['','','','','','','',''],
-               ['','','','','','','',''],
-               ['','','','','','','','']]
  
 
 window.mainloop()
